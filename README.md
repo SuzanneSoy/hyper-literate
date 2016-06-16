@@ -23,4 +23,5 @@ their result, etc.
   explanative text comming along with the source code.
   
 * Imagine something like [Inform](http://inform7.com/), but focussed on
-  explaining a program.
+  exploring a program instead of exploring an imaginary world — after all, a
+  program is some kind of imaginary world.
