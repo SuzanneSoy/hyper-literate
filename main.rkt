@@ -1,35 +1,33 @@
 #lang racket/base
 
-(module+ test
-  (require rackunit))
+(require (for-syntax racket/base
+                     racket/syntax)
+         scribble/lp2)
 
-;; Notice
-;; To install (from within the package directory):
-;;   $ raco pkg install
-;; To install (once uploaded to pkgs.racket-lang.org):
-;;   $ raco pkg install <<name>>
-;; To uninstall:
-;;   $ raco pkg remove <<name>>
-;; To view documentation:
-;;   $ raco docs <<name>>
-;;
-;; For your convenience, we have included a LICENSE.txt file, which links to
-;; the GNU Lesser General Public License.
-;; If you would prefer to use a different license, replace LICENSE.txt with the
-;; desired license.
-;;
-;; Some users like to add a `private/` directory, place auxiliary files there,
-;; and require them in `main.rkt`.
-;;
-;; See the current version of the racket style guide here:
-;; http://docs.racket-lang.org/style/index.html
+(provide ck defck repeat-chunk)
 
-;; Code here
+(define-syntax-rule (ck e) e)
 
-(module+ test
-  ;; Tests to be run with raco test
-  )
+(define-syntax (defck stx)
+  (syntax-case stx ()
+    [(self . rest)
+     (with-syntax ([(name . content) #'rest]
+                   [chk (datum->syntax #'self 'chunk)])
+       (with-syntax ([name2 (format-id #'name "~a-repeat" #'name)])
+         #`(begin
+             #,(syntax/loc stx (chk . rest))
+             ;(define name2 #'content)
+             (define-syntax (name2 stx2)
+               (syntax-case stx2 ()
+                 [(_ prefix (... ...)) #'(prefix (... ...) . content)])))))]))
 
-(module+ main
-  ;; Main entry point, executed when run with the `racket` executable or DrRacket.
-  )
+(define-syntax (repeat-chunk stx)
+  (syntax-case stx ()
+    [(self name)
+     (let ([stripped-name (regexp-replace #px"^<(.*)>$"
+                                          (symbol->string (syntax-e #'name))
+                                          "\\1")])
+       (with-syntax ([chk (datum->syntax #'self 'chunk)]
+                     [name2 (format-id #'name "~a-repeat" #'name)]
+                     [name-rep (format-id #'name "(~a)" stripped-name)])
+         #'(name2 chk name-rep)))]))
