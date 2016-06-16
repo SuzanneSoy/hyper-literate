@@ -81,6 +81,8 @@
        #'(elemref '(chunk tag) #:underline? #f str))]))
 
 
-(provide (all-from-out scheme/base
+(require typed/racket/base)
+
+(provide (all-from-out typed/racket/base ;scheme/base
                        scribble/manual)
          chunk CHUNK)
