@@ -1,4 +1,4 @@
-#lang hyper-literate/typed racket
+#lang hyper-literate/typed typed/racket
 
 @;((curry + 1) 2)
 

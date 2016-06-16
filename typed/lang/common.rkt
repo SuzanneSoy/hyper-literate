@@ -8,38 +8,6 @@
 (require (for-syntax racket/base syntax/boundmap racket/list
                      syntax/strip-context))
 
-(require macro-debugger/syntax-browser)
-
-(define-for-syntax ty-introducer
-  (let ([si (make-syntax-introducer)])
-    (λ (x)
-      #`(browse-syntax #'#,(si x))
-      (si x))))
-(define-syntax (req-ty stx)
-  (ty-introducer
-   (syntax-local-introduce
-    #'(begin
-        (require (only-in typed/racket
-                          ann
-                          Symbol))
-        (ann 'aaa Symbol)))))
-(req-ty)
-
-(define-syntax (later stx)
-  (ty-introducer
-   #'(ann 'bbb Symbol)))
-
-(later)
-
-(define-syntax (later2 stx)
-  #'(later))
-
-;(later2)
-
-(require (only-in typed/racket
-                  [#%module-begin modbeg-ty]
-                  require/typed))
-
 (begin-for-syntax
   (define first-id #f)
   (define main-id #f)
@@ -94,8 +62,8 @@
                                             (syntax-local-introduce u)))
                                     (mapping-get chunk-groups m)))
                              chunk-mentions)])
-    ;(displayln (dynamic-require 'typed/racket '#%module-begin))
-    (replace-context #'modbeg-ty
+    ;(displayln (dynamic-require 'tyyyyyyyyyyyped/racket '#%module-begin))
+    (replace-context #'#%module-begin;modbeg-ty
                      #`(begin 'xxx body ... (let ([b-id (void)]) b-use) ...))))
 
 (define-for-syntax (strip-comments body)
@@ -157,6 +125,8 @@
 (require racket/stxparam)
 (define-syntax-parameter mbeg #'#%module-begin)
 
+;(require (only-in tyyyyyyyyyyyped/racket))
+
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-case stx ()
     [(mb lng . _)
@@ -166,29 +136,27 @@
        (dynamic-require lng-sym #f)
        (define ns1 (module->namespace lng-sym))
        ;(define ns2 (make-empty-namespace))
-       ;(namespace-attach-module ns1 'typed/racket ns2)
-       (displayln ns1)
+       ;(namespace-attach-module ns1 'tyyyyyyyyyyyped/racket ns2)
+       ;(displayln ns1)
        ;(displayln ns2)
        (parameterize ([current-namespace ns1])
-         (displayln (namespace-symbol->identifier '#%module-begin))
-         (displayln (namespace-syntax-introduce #'#%module-begin))
+         (namespace-require `(for-meta -1 ,lng-sym))
+         #|(displayln (namespace-symbol->identifier '#%module-begin))
+           (displayln (replace-context
+                     (namespace-symbol->identifier '#%module-begin)
+                     #'#%module-begin))|#
          (replace-context
           (namespace-symbol->identifier '#%module-begin)
           #'(#%module-begin
-             (ann (cons 1 'b) (Pairof Number Symbol))
-             ((make-predicate (Pairof Number Symbol)) (cons 1 'b))))
+             (+ 'a)
+             #;(ann (cons 1 'b) (Pairof Number Symbol))
+             #;((make-predicate (Pairof Number Symbol)) (cons 1 'b))))
          #;(namespace-syntax-introduce
             )))])
-  #;(with-syntax ([md (namespace-module-identifier ns)])
-      #'(md typed/racket (ann 1 Number)))
-  #;(ty-introducer
-     (syntax-local-introduce
-      #'(modbeg-ty
-         (ann 'ccc Symbol))))
   #;(syntax-case stx ()
       [(_ body0 . body)
        (let ([expanded 
-              (expand `(,#'module scribble-lp-tmp-name scribble/private/lp;hyper-literate/typed/private/lp
+              (expand `(,#'module scribble-lp-tmp-name scribble/private/lp;hyper-literate/tyyyyyyyyyyyped/private/lp
                                   ,@(strip-context #'(body0 . body))))])
          (syntax-case expanded ()
            [(module name lang (mb . stuff))
@@ -205,7 +173,7 @@
                                    (strip-context
                                     #`(module doc scribble/doclang2
                                         (require scribble/manual
-                                                 (only-in hyper-literate/typed/private/lp chunk CHUNK))
+                                                 (only-in hyper-literate/tyyyyyyyyyyyped/private/lp chunk CHUNK))
                                         (begin body0 . body)))])
                               (syntax-case submod ()
                                 [(_ . rest)
