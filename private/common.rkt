@@ -126,7 +126,6 @@
 (define-syntax-parameter mbeg #'#%module-begin)
 
 (require (only-in typed/racket)) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; WORKAROUND
-;(dynamic-require 'typed/racket 0)
 
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-case stx ()
@@ -138,7 +137,7 @@
        (define lang-sym
          (string->symbol (regexp-replace "^ " (syntax-e #'lang) "")))
        (let ([expanded 
-              (expand `(,#'module scribble-lp-tmp-name hyper-literate/typed/private/lp
+              (expand `(,#'module scribble-lp-tmp-name hyper-literate/private/lp
                                   (define-syntax-rule (if-preexpanding a b) a)
                                   (define-syntax-rule (when-preexpanding . b) (begin . b))
                                   (define-syntax-rule (unless-preexpanding . b) (begin))
@@ -162,7 +161,7 @@
                                       (define-syntax-rule (when-preexpanding . b) (begin))
                                       (define-syntax-rule (unless-preexpanding . b) (begin . b))
                                       (require scribble/manual
-                                               (only-in hyper-literate/typed/private/lp chunk CHUNK))
+                                               (only-in hyper-literate/private/lp chunk CHUNK))
                                       (begin body0 . body)))])
                             (syntax-case submod ()
                               [(_ . rest)

@@ -1,7 +1,7 @@
 #lang s-exp syntax/module-reader
 ;; Forked from scribble-lib/scribble/lp/lang/reader.rkt
 
-hyper-literate/typed/lang/lang
+hyper-literate/lang
 
 #:read read-inside
 #:read-syntax read-syntax-inside

@@ -1,4 +1,4 @@
-#lang hyper-literate/typed typed/racket/base
+#lang hyper-literate typed/racket/base
 
 @(require (for-label typed/racket/base
                      typed/rackunit))
