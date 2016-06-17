@@ -73,7 +73,7 @@
                      (list (smaller (elemref '(chunk tag) #:underline? #f
                                              str
                                              rest ...))))
-                    (racketblock expr ...))))))]))
+                    (#,racketblock expr ...))))))]))
 
 (define-syntax chunk (make-chunk #'racketblock))
 (define-syntax CHUNK (make-chunk #'RACKETBLOCK))
