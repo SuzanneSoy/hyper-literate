@@ -1,5 +1,5 @@
-[![Build Status,](https://img.shields.io/travis/jsmaniac/hyper-literate/master.svg)](https://travis-ci.org/jsmaniac/hyper-literate)
-[![Coverage Status,](https://img.shields.io/coveralls/jsmaniac/hyper-literate/master.svg)](https://coveralls.io/github/jsmaniac/hyper-literate)
+[![Build Status,](https://img.shields.io/travis/jsmaniac/hyper-literate/stackoverflow-q-18877881.svg)](https://travis-ci.org/jsmaniac/hyper-literate)
+[![Coverage Status,](https://img.shields.io/coveralls/jsmaniac/hyper-literate/stackoverflow-q-18877881.svg)](https://coveralls.io/github/jsmaniac/hyper-literate)
 [![Build Stats.](https://img.shields.io/badge/build-stats-blue.svg)](http://jsmaniac.github.io/travis-stats/#jsmaniac/hyper-literate)
 
 hyper-literate
