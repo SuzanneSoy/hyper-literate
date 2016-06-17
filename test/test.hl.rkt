@@ -1,6 +1,7 @@
 #lang hyper-literate/typed typed/racket/base
 
-@(require (for-label typed/racket/base))
+@(require (for-label typed/racket/base
+                     rackunit))
 
 @title{Title}
 
@@ -59,12 +60,12 @@ scribble complains some identifiers are loaded twice
 for-label, since some identifiers have already been introduced
 at meta-level 0 by @racketmodname[typed/racket].
 
-@chunk[<require-for-syntax>
-       (begin (require (for-syntax racket/base)))]
+@chunk[<require-not-label>
+       (begin (require (for-syntax racket/base))
+              (require typed/rackunit))]
 
 @chunk[<*>
-       <require-for-syntax>
-       (require typed/rackunit)
+       <require-not-label>
        <submod>
        <req-multi>
        <submod*>

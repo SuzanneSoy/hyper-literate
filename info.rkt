@@ -8,7 +8,7 @@
                "typed-racket-lib"
                "typed-racket-more"
                "typed-racket-doc"))
-(define build-deps '("scribble-lib" "racket-doc"))
+(define build-deps '("scribble-lib" "racket-doc" "rackunit-doc"))
 (define scribblings '(("scribblings/hyper-literate.scrbl" ())
                       ("test/test.hl.rkt" ())))
 (define pkg-desc "Description Here")
