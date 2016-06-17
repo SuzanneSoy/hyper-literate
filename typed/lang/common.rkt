@@ -137,7 +137,6 @@
        ;; to allow othe meta-languages to be chained.
        (define lang-sym
          (string->symbol (regexp-replace "^ " (syntax-e #'lang) "")))
-       (dynamic-require lang-sym #f)
        (let ([expanded 
               (expand `(,#'module scribble-lp-tmp-name hyper-literate/typed/private/lp
                                   (define-syntax-rule (if-preexpanding a b) a)

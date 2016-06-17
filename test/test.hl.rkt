@@ -45,9 +45,26 @@ And so does @racket[(require (submod ".." …))]:
        (require (submod ".."))
        (require (submod ".." ms2))]
 
+Test with multiple subforms inside require, and coverage for
+@racket[for-syntax]:
+
+@chunk[<req-multi>
+       (require (for-syntax syntax/stx
+                            racket/syntax)
+                racket/bool)]
+
 @chunk[<*>
+       (begin (require (for-syntax racket/base)))
        (require typed/rackunit)
        <submod>
+       <req-multi>
+       <submod*>
+       (check-true (false? #f));; Should be hyperlinked to the main docs
+       (begin-for-syntax
+         (define/with-syntax ;; Should be hyperlinked to the main docs
+           x
+           (stx-car ;; Should be hyperlinked to the main docs
+            #'(a . b))))
        (check-equal? (+ x x) 2)
        (check-equal? (+ x y) 0)
        ;; Gives an error because typed/racket/base is used on the #lang line:
