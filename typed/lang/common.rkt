@@ -130,93 +130,45 @@
 
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-case stx ()
-    [(mb lng body0 . body)
-     #;(let ()
-         ;(define lng-sym (string->symbol (regexp-replace "^ " (syntax-e #'lng) "")))
-         ;(define mb (dynamic-require lng-sym '#%module-begin))
-         #'(mb 0))
+    [(_modbeg lang body0 . body)
      (let ()
-       ;; TODO: get the actual symbol, instead of the string returned by scribble's at-reader
-       (define lng-sym (string->symbol (regexp-replace "^ " (syntax-e #'lng) "")))
-       (dynamic-require lng-sym #f)
-       (define ns1 (current-namespace));(module->namespace lng-sym))
-       ;(define ns2 (make-empty-namespace))
-       ;(namespace-attach-module ns1 'tyyyyyyyyyyyped/racket ns2)
-       ;(displayln ns1)
-       ;(displayln ns2)
+       ;; TODO: get the actual symbol, instead of the string returned by
+       ;; scribble's at-reader. Or use the first line as a whole as the #lang,
+       ;; to allow othe meta-languages to be chained.
+       (define lang-sym
+         (string->symbol (regexp-replace "^ " (syntax-e #'lang) "")))
+       (dynamic-require lang-sym #f)
        (let ([expanded 
-              (expand `(,#'module scribble-lp-tmp-name scribble/private/lp;hyper-literate/tyyyyyyyyyyyped/private/lp
+              (expand `(,#'module scribble-lp-tmp-name hyper-literate/typed/private/lp
+                                  (define-syntax-rule (if-preexpanding a b) a)
+                                  (define-syntax-rule (when-preexpanding . b) (begin . b))
+                                  (define-syntax-rule (unless-preexpanding . b) (begin))
                                   ,@(strip-context #'(body0 . body))))])
          (syntax-case expanded ()
            [(module name lang (mb . stuff))
-            (begin (extract-chunks #'stuff)
-                   (parameterize ([current-namespace ns1])
-                     (dynamic-require lng-sym #f)
-                     (namespace-require `(for-meta -1 ,lng-sym))
-                     #|(displayln (namespace-symbol->identifier '#%module-begin))
-           (displayln (replace-context
-                     (namespace-symbol->identifier '#%module-begin)
-                     #'#%module-begin))|#
-                     (replace-context
-                      (namespace-symbol->identifier '#%module-begin)
-                      #`(#%module-begin
-                         ;#,#'(let ([eee 'eee])
-                         ;      (ann eee Symbol))
-                         #,(tangle #'body0))
-                      #;#`(#%module-begin
-                         #,(strip-context #'(begin
-                                              (let ([eee 'eee])
-                                                (ann eee Symbol))
-                                              (let ([v (+ 1 2)]) (ann v Number))))
-                         #;(ann (cons 1 'b) (Pairof Number Symbol))
-                         #;((make-predicate (Pairof Number Symbol)) (cons 1 'b))))
-                     #;(namespace-syntax-introduce
-                        )))]))
-       ;;;; WORKS:
-       #;(parameterize ([current-namespace ns1])
-           (dynamic-require lng-sym #f)
-           (namespace-require `(for-meta -1 ,lng-sym))
-           #|(displayln (namespace-symbol->identifier '#%module-begin))
-           (displayln (replace-context
-                     (namespace-symbol->identifier '#%module-begin)
-                     #'#%module-begin))|#
-           (replace-context
-            (namespace-symbol->identifier '#%module-begin)
-            #`(#%module-begin
-               #,(strip-context #'(begin
-                                    (let ([eee 'eee])
-                                      (ann eee Symbol))
-                                    (let ([v (+ 1 2)]) (ann v Number))))
-               #;(ann (cons 1 'b) (Pairof Number Symbol))
-               #;((make-predicate (Pairof Number Symbol)) (cons 1 'b))))
-           #;(namespace-syntax-introduce
-              )))])
-  #;(syntax-case stx ()
-      [(_ body0 . body)
-       (let ([expanded 
-              (expand `(,#'module scribble-lp-tmp-name scribble/private/lp;hyper-literate/tyyyyyyyyyyyped/private/lp
-                                  ,@(strip-context #'(body0 . body))))])
-         (syntax-case expanded ()
-           [(module name lang (mb . stuff))
-            (begin (extract-chunks #'stuff)
-                   #`(modbeg-ty
-                      #,(ty-introducer #'(let ([eee 'eee])
-                                           (ann eee Symbol)))
-                      (tangle body0)
-                      ;; The `doc` submodule allows a `scribble/lp` module
-                      ;; to be provided to `scribble`:
-                      #|#,@(if submod?
-                           (list
-                            (let ([submod
-                                   (strip-context
-                                    #`(module doc scribble/doclang2
-                                        (require scribble/manual
-                                                 (only-in hyper-literate/tyyyyyyyyyyyped/private/lp chunk CHUNK))
-                                        (begin body0 . body)))])
-                              (syntax-case submod ()
-                                [(_ . rest)
-                                 (datum->syntax submod (cons #'module* #'rest))])))
-                           '())|#))]))]))
+            (let ()
+              (extract-chunks #'stuff)
+              (dynamic-require lang-sym #f)
+              (namespace-require `(for-meta -1 ,lang-sym))
+              (replace-context
+               (namespace-symbol->identifier '#%module-begin)
+               #`(#%module-begin
+                  #,(tangle #'body0)
+                  #,@(if submod?
+                         (list
+                          (let ([submod
+                                 (strip-context
+                                  #`(module doc scribble/doclang2
+                                      (define-syntax-rule (if-preexpanding a b) b)
+                                      (define-syntax-rule (when-preexpanding . b) (begin))
+                                      (define-syntax-rule (unless-preexpanding . b) (begin . b))
+                                      (require scribble/manual
+                                               (only-in hyper-literate/typed/private/lp chunk CHUNK))
+                                      (begin body0 . body)))])
+                            (syntax-case submod ()
+                              [(_ . rest)
+                               (datum->syntax #'here (cons #'module* #'rest))])))
+                         '()))))])))]))
 
 (define-syntax module-begin/plain (make-module-begin #f))
 (define-syntax module-begin/doc (make-module-begin #t))

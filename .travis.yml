@@ -48,8 +48,8 @@ before_script:
 # packages without it getting stuck on a confirmation prompt.
 script:
  - raco test -x -p hyper-literate
+ - raco setup --check-pkg-deps --pkgs hyper-literate
 
 after_success:
- - raco setup --check-pkg-deps --pkgs hyper-literate
  - raco pkg install --deps search-auto cover cover-coveralls
  - raco cover -b -f coveralls -d $TRAVIS_BUILD_DIR/coverage .
