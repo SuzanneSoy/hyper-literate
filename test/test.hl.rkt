@@ -46,6 +46,11 @@ And so does @racket[(require (submod ".." …))]:
        (require (submod ".." ms2))]
 
 @chunk[<*>
+       (begin
+         ;; Wrap the require in a `(begin …)` so that it gets ignored,
+         ;; otherwise scribble complains some identifiers are loaded twice
+         ;; for-label.
+         (require (for-syntax)))
        (require typed/rackunit)
        <submod>
        (check-equal? (+ x x) 2)
