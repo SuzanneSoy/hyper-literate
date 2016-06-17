@@ -53,8 +53,17 @@ Test with multiple subforms inside require, and coverage for
                             racket/syntax)
                 racket/bool)]
 
+Wrap the @racket[(require (for-syntax racket/base))] in a 
+@racket[(begin …)] so that it gets ignored, otherwise
+scribble complains some identifiers are loaded twice
+for-label, since some identifiers have already been introduced
+at meta-level 0 by @racketmodname[typed/racket].
+
+@chunk[<require-for-syntax>
+       (begin (require (for-syntax racket/base)))]
+
 @chunk[<*>
-       (begin (require (for-syntax racket/base)))
+       <require-for-syntax>
        (require typed/rackunit)
        <submod>
        <req-multi>
