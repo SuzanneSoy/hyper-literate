@@ -68,9 +68,9 @@
              (make-splice
               (list (make-toc-element
                      #f
-                     (list (elemtag '(chunk tag)
+                     (list (elemtag '(chunk (prefixable tag))
                                     (bold (italic (racket name)) " ::=")))
-                     (list (smaller (elemref '(chunk tag) #:underline? #f
+                     (list (smaller (elemref '(chunk (prefixable tag)) #:underline? #f
                                              str
                                              rest ...))))
                     (#,racketblock expr ...))))))]))
@@ -84,7 +84,7 @@
      (identifier? #'id)
      (with-syntax ([tag (format "~a:1" (syntax-e #'id))]
                    [str (format "~a" (syntax-e #'id))])
-       #'(elemref '(chunk tag) #:underline? #f str))]))
+       #'(elemref '(chunk (prefixable tag)) #:underline? #f str))]))
 
 
 (provide (all-from-out scheme/base
