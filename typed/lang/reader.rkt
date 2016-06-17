@@ -10,9 +10,8 @@ hyper-literate/typed/lang/lang
 ;; scribble/lp files are not directly scribble'able.
 #:language-info (scribble-base-language-info)
 #:info (scribble-base-reader-info)
-(require scribble/reader
+(require "my-reader.rkt"
+         scribble/reader
          (only-in scribble/base/reader
                   scribble-base-reader-info
                   scribble-base-language-info))
-
-

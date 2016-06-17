@@ -28,11 +28,11 @@
      chunks id
      `(,@(mapping-get chunks id) ,@exprs))))
 
-(define-syntax (tangle stx)
+(define-for-syntax (tangle orig-stx)
   (define chunk-mentions '())
   (unless first-id
     (raise-syntax-error 'scribble/lp "no chunks"))
-  (define orig-stx (syntax-case stx () [(_ orig) #'orig]))
+  ;(define orig-stx (syntax-case stx () [(_ orig) #'orig]))
   (define (restore nstx d) (datum->syntax orig-stx d nstx nstx))
   (define (shift nstx) (replace-context orig-stx nstx))
   (define body
@@ -64,7 +64,7 @@
                              chunk-mentions)])
     ;(displayln (dynamic-require 'tyyyyyyyyyyyped/racket '#%module-begin))
     (replace-context #'#%module-begin;modbeg-ty
-                     #`(begin 'xxx body ... (let ([b-id (void)]) b-use) ...))))
+                     #`(begin body ... (let ([b-id (void)]) b-use) ...))))
 
 (define-for-syntax (strip-comments body)
   (cond
@@ -125,34 +125,72 @@
 (require racket/stxparam)
 (define-syntax-parameter mbeg #'#%module-begin)
 
-;(require (only-in tyyyyyyyyyyyped/racket))
+(require (only-in typed/racket)) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; WORKAROUND
+;(dynamic-require 'typed/racket 0)
 
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-case stx ()
-    [(mb lng . _)
+    [(mb lng body0 . body)
+     #;(let ()
+         ;(define lng-sym (string->symbol (regexp-replace "^ " (syntax-e #'lng) "")))
+         ;(define mb (dynamic-require lng-sym '#%module-begin))
+         #'(mb 0))
      (let ()
        ;; TODO: get the actual symbol, instead of the string returned by scribble's at-reader
        (define lng-sym (string->symbol (regexp-replace "^ " (syntax-e #'lng) "")))
        (dynamic-require lng-sym #f)
-       (define ns1 (module->namespace lng-sym))
+       (define ns1 (current-namespace));(module->namespace lng-sym))
        ;(define ns2 (make-empty-namespace))
        ;(namespace-attach-module ns1 'tyyyyyyyyyyyped/racket ns2)
        ;(displayln ns1)
        ;(displayln ns2)
-       (parameterize ([current-namespace ns1])
-         (namespace-require `(for-meta -1 ,lng-sym))
-         #|(displayln (namespace-symbol->identifier '#%module-begin))
+       (let ([expanded 
+              (expand `(,#'module scribble-lp-tmp-name scribble/private/lp;hyper-literate/tyyyyyyyyyyyped/private/lp
+                                  ,@(strip-context #'(body0 . body))))])
+         (syntax-case expanded ()
+           [(module name lang (mb . stuff))
+            (begin (extract-chunks #'stuff)
+                   (parameterize ([current-namespace ns1])
+                     (dynamic-require lng-sym #f)
+                     (namespace-require `(for-meta -1 ,lng-sym))
+                     #|(displayln (namespace-symbol->identifier '#%module-begin))
            (displayln (replace-context
                      (namespace-symbol->identifier '#%module-begin)
                      #'#%module-begin))|#
-         (replace-context
-          (namespace-symbol->identifier '#%module-begin)
-          #'(#%module-begin
-             (+ 'a)
-             #;(ann (cons 1 'b) (Pairof Number Symbol))
-             #;((make-predicate (Pairof Number Symbol)) (cons 1 'b))))
-         #;(namespace-syntax-introduce
-            )))])
+                     (replace-context
+                      (namespace-symbol->identifier '#%module-begin)
+                      #`(#%module-begin
+                         ;#,#'(let ([eee 'eee])
+                         ;      (ann eee Symbol))
+                         #,(tangle #'body0))
+                      #;#`(#%module-begin
+                         #,(strip-context #'(begin
+                                              (let ([eee 'eee])
+                                                (ann eee Symbol))
+                                              (let ([v (+ 1 2)]) (ann v Number))))
+                         #;(ann (cons 1 'b) (Pairof Number Symbol))
+                         #;((make-predicate (Pairof Number Symbol)) (cons 1 'b))))
+                     #;(namespace-syntax-introduce
+                        )))]))
+       ;;;; WORKS:
+       #;(parameterize ([current-namespace ns1])
+           (dynamic-require lng-sym #f)
+           (namespace-require `(for-meta -1 ,lng-sym))
+           #|(displayln (namespace-symbol->identifier '#%module-begin))
+           (displayln (replace-context
+                     (namespace-symbol->identifier '#%module-begin)
+                     #'#%module-begin))|#
+           (replace-context
+            (namespace-symbol->identifier '#%module-begin)
+            #`(#%module-begin
+               #,(strip-context #'(begin
+                                    (let ([eee 'eee])
+                                      (ann eee Symbol))
+                                    (let ([v (+ 1 2)]) (ann v Number))))
+               #;(ann (cons 1 'b) (Pairof Number Symbol))
+               #;((make-predicate (Pairof Number Symbol)) (cons 1 'b))))
+           #;(namespace-syntax-introduce
+              )))])
   #;(syntax-case stx ()
       [(_ body0 . body)
        (let ([expanded 
