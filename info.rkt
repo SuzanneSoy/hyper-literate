@@ -5,7 +5,8 @@
                "at-exp-lib"
                "scheme-lib"
                "scribble-lib"
-               "typed-racket-lib"))
+               "typed-racket-lib"
+               "typed-racket-more"))
 (define build-deps '("scribble-lib" "racket-doc"))
 (define scribblings '(("scribblings/hyper-literate.scrbl" ())
                       ("test/test.hl.rkt" ())))
