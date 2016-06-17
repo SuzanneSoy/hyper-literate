@@ -1,5 +1,7 @@
 #lang hyper-literate/typed typed/racket/base
 
+@(require (for-label typed/racket/base))
+
 @title{Title}
 
 Hello world.
@@ -11,13 +13,43 @@ Hello world.
 @(unless-preexpanding
   (symbol->string ee))
 
-@chunk[<*>
-       (require typed/rackunit)
+Submodules work:
+
+@chunk[<submod>
        (module ms typed/racket/base
          (define x 1)
          (provide x))
+
+       (module ms2 typed/racket/base
+         (define y -1)
+         (provide y))]
+
+And can be required:
+
+@chunk[<submod>
        (require 'ms)
+       (require (submod "." ms2))]
+
+Submodules with @racket[module*] work too:
+
+@chunk[<submod*>
+       (module* ms* racket/base
+         (require typed/rackunit)
+         <req-dotdot>
+         (check-equal? ee 'e123)
+         (check-equal? y -1))]
+
+And so does @racket[(require (submod ".." …))]:
+
+@chunk[<req-dotdot>
+       (require (submod ".."))
+       (require (submod ".." ms2))]
+
+@chunk[<*>
+       (require typed/rackunit)
+       <submod>
        (check-equal? (+ x x) 2)
+       (check-equal? (+ x y) 0)
        ;; Gives an error because typed/racket/base is used on the #lang line:
        ;curry
        (check-equal? ((make-predicate One) 1) #t)
