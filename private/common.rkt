@@ -183,26 +183,28 @@
               ;#`(#,(syntax/loc #'lang #%module-begin) …)
               #`(#,(namespace-symbol->identifier '#%module-begin)
                  tngl
-                 #,@(maybe-insert-doc-submod submod? lang-sym)))])))]))
-(define-for-syntax (maybe-insert-doc-submod submod? lang-sym)
-  (if submod?
-      (list
-       (let ([submod
-              (strip-context
-               #`(module doc scribble/doclang2
-                   (define-syntax-rule (if-preexpanding a b) b)
-                   (define-syntax-rule (when-preexpanding . b) (begin))
-                   (define-syntax-rule (unless-preexpanding . b) (begin . b))
-                   (require scribble/manual
-                            (only-in hyper-literate/private/lp
-                                     chunk
-                                     CHUNK)
-                            (for-label #,lang-sym))
-                   (begin body0 . body)))])
-         (syntax-case submod ()
-           [(_ . rest)
-            (datum->syntax #'here (cons #'module* #'rest))])))
-      '()))
+                 #,@(if submod?
+                        (list
+                         (let ([submod
+                                (strip-context
+                                 #`(module doc scribble/doclang2
+                                     (define-syntax-rule (if-preexpanding a b)
+                                       b)
+                                     (define-syntax-rule (when-preexpanding . b)
+                                       (begin))
+                                     (define-syntax-rule
+                                         (unless-preexpanding . b)
+                                       (begin . b))
+                                     (require scribble/manual
+                                              (only-in hyper-literate/private/lp
+                                                       chunk
+                                                       CHUNK)
+                                              (for-label #,lang-sym))
+                                     (begin body0 . body)))])
+                           (syntax-case submod ()
+                             [(_ . rest)
+                              (datum->syntax #'here (cons #'module* #'rest))])))
+                        '())))])))]))
 
 (define-syntax module-begin/plain (make-module-begin #f))
 (define-syntax module-begin/doc (make-module-begin #t))
