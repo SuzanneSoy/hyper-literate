@@ -22,7 +22,7 @@
      (identifier? #'name)
      (let* ([n (get-chunk-number (syntax-local-introduce #'name))]
             [str (symbol->string (syntax-e #'name))]
-            [tag (format "~a:~a" str (or n 1))])
+            [tag (format "chunk:~a:~a" str (or n 1))])
      
        (when n
          (inc-chunk-number (syntax-local-introduce #'name)))
@@ -68,9 +68,9 @@
              (make-splice
               (list (make-toc-element
                      #f
-                     (list (elemtag '(chunk (prefixable tag))
+                     (list (elemtag '(prefixable tag)
                                     (bold (italic (racket name)) " ::=")))
-                     (list (smaller (elemref '(chunk (prefixable tag)) #:underline? #f
+                     (list (smaller (elemref '(prefixable tag) #:underline? #f
                                              str
                                              rest ...))))
                     (#,racketblock expr ...))))))]))
@@ -82,9 +82,9 @@
   (syntax-case stx ()
     [(_ id)
      (identifier? #'id)
-     (with-syntax ([tag (format "~a:1" (syntax-e #'id))]
+     (with-syntax ([tag (format "chunk:~a:1" (syntax-e #'id))]
                    [str (format "~a" (syntax-e #'id))])
-       #'(elemref '(chunk (prefixable tag)) #:underline? #f str))]))
+       #'(elemref '(prefixable tag) #:underline? #f str))]))
 
 
 (provide (all-from-out scheme/base
