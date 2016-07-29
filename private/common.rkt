@@ -6,7 +6,8 @@
          module-begin/doc)
 
 (require (for-syntax racket/base syntax/boundmap racket/list
-                     syntax/strip-context))
+                     syntax/strip-context
+                     syntax/srcloc))
 
 (begin-for-syntax
   (define first-id #f)
@@ -185,25 +186,42 @@
                  tngl
                  #,@(if submod?
                         (list
-                         (let ([submod
-                                (strip-context
-                                 #`(module doc scribble/doclang2
-                                     (define-syntax-rule (if-preexpanding a b)
-                                       b)
-                                     (define-syntax-rule (when-preexpanding . b)
-                                       (begin))
-                                     (define-syntax-rule
-                                         (unless-preexpanding . b)
-                                       (begin . b))
-                                     (require scribble/manual
-                                              (only-in hyper-literate/private/lp
-                                                       chunk
-                                                       CHUNK)
-                                              (for-label #,lang-sym))
-                                     (begin body0 . body)))])
-                           (syntax-case submod ()
-                             [(_ . rest)
-                              (datum->syntax #'here (cons #'module* #'rest))])))
+                         (with-syntax*
+                             ([ctx #'body0 #;(syntax-local-introduce #'body0)]
+                              ;; TODO: this is a hack, it would be nice to get
+                              ;; the actual source location of the lang.
+                              [bd1 (update-source-location #'body0
+                                                           #:line #f
+                                                           #:column #f
+                                                           #:position 7
+                                                           #:span 14)]
+                              [lng (datum->syntax #'ctx 'scribble/doclang2 #'bd1 #'bd1)]
+                              [begn (datum->syntax #'ctx 'begin)])
+                           #`(module* doc lng ;module doc scribble/doclang2
+                               #,@(syntax-local-introduce
+                                   ;; TODO: instead use:
+                                   ;; (begin-for-syntax (set! preexpanding #f))
+                                   ;; and make these identifiers exported by
+                                   ;; hyper-literate
+                                   (strip-context
+                                    #'((define-syntax-rule (if-preexpanding a b)
+                                         b)
+                                       (define-syntax-rule (when-preexpanding . b)
+                                         (begin))
+                                       (define-syntax-rule
+                                           (unless-preexpanding . b)
+                                         (begin . b))
+                                       (require scribble/manual
+                                                hyper-literate))))
+                               #,(datum->syntax #'ctx
+                                                `(require ,(datum->syntax #'bd1 'scribble/manual #'bd1 #'bd1)
+                                                          ,(datum->syntax #'bd1 'hyper-literate #'bd1 #'bd1)
+                                                          #;(only-in scribble/private/lp chunk CHUNK)))
+                               (begn body0 . body))
+                           ;(strip-context
+                           #;#`(modl doc lng ;module doc scribble/doclang2
+                                     
+                                     (begn body0 . body))))
                         '())))])))]))
 
 (define-syntax module-begin/plain (make-module-begin #f))

@@ -1,7 +1,10 @@
 #lang scheme/base
 ;; Forked from scribble-lib/scribble/private/lp.rkt
 
-(require (for-syntax scheme/base syntax/boundmap)
+(require (for-syntax scheme/base
+                     syntax/boundmap
+                     syntax/parse
+                     racket/syntax)
          scribble/scheme scribble/decode scribble/manual scribble/struct)
 
 (begin-for-syntax
@@ -16,8 +19,8 @@
     (free-identifier-mapping-put! chunk-numbers id 2)))
 
 (define-for-syntax ((make-chunk racketblock) stx)
-  (syntax-case stx ()
-    [(_ name expr ...)
+  (syntax-parse stx
+    [(_ (~optional (~seq #:save-as save-as)) name expr ...)
      ;; no need for more error checking, using chunk for the code will do that
      (identifier? #'name)
      (let* ([n (get-chunk-number (syntax-local-introduce #'name))]
@@ -56,16 +59,10 @@
                            (syntax->list #'(expr ...)))]
                      
                      [(rest ...) (if n
-                                           #`((subscript #,(format "~a" n)))
-                                           #`())])
-         #`(begin
-             (require (for-label for-label-mod ... ...))
-             #,@(if n
-                    #'()
-                    #'((define-syntax name (make-element-id-transformer
-                                            (lambda (stx) #'(chunkref name))))
-                       (begin-for-syntax (init-chunk-number #'name))))
-             (make-splice
+                                     #`((subscript #,(format "~a" n)))
+                                     #`())])
+         (define/with-syntax pre-content
+           #`(make-splice
               (list (make-toc-element
                      #f
                      (list (elemtag '(prefixable tag)
@@ -73,7 +70,17 @@
                      (list (smaller (elemref '(prefixable tag) #:underline? #f
                                              str
                                              rest ...))))
-                    (#,racketblock expr ...))))))]))
+                    (#,racketblock expr ...))))
+         #`(begin
+             (require (for-label for-label-mod ... ...))
+             #,@(if n
+                    #'()
+                    #'((define-syntax name (make-element-id-transformer
+                                            (lambda (stx) #'(chunkref name))))
+                       (begin-for-syntax (init-chunk-number #'name))))
+             #,(if (attribute save-as)
+                   #'(define-syntax (save-as s) (syntax pre-content))
+                   #'pre-content))))]))
 
 (define-syntax chunk (make-chunk #'racketblock))
 (define-syntax CHUNK (make-chunk #'RACKETBLOCK))

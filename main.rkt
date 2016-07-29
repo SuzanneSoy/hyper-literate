@@ -2,11 +2,16 @@
 
 (require (for-syntax racket/base
                      racket/syntax)
-         scribble/lp2)
+         (except-in scribble/lp2 chunk CHUNK))
 
-(provide ck defck repeat-chunk)
+(require (only-in hyper-literate/private/lp
+                  chunk
+                  CHUNK))
 
-(define-syntax-rule (ck e) e)
+(provide defck
+         repeat-chunk
+         chunk
+         CHUNK)
 
 (define-syntax (defck stx)
   (syntax-case stx ()
