@@ -55,7 +55,8 @@
                              (syntax-local-introduce #'here)))
                   (define intr (make-syntax-delta-introducer b a))
                   (syntax-local-lift-expression
-                   (intr #`(quote-syntax (a-chunk (... name) (... expr) ...))
+                   (intr #`(quote-syntax (a-chunk ((... ...) name)
+                                                  ((... ...) expr) ...))
                          'flip))
                   #'(begin))
                 (macro-to-expand-unsyntax)))
