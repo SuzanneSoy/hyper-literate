@@ -20,6 +20,7 @@
   (define (init-chunk-number id)
     (free-identifier-mapping-put! chunk-numbers id 2)))
 
+(require (for-syntax "no-auto-require.rkt"))
 (define-for-syntax ((make-chunk racketblock unsyntax?) stx)
   (syntax-parse stx
     [(_ (~optional (~seq #:save-as save-as)) name expr ...)
@@ -46,100 +47,52 @@
        ;; Later support for UNSYNTAX within @CHUNK may be added.
        (if unsyntax?
            ;; New hack:
-           (let ()
-             (display (syntax->datum #'name))
-             (display " 1 ")
-             (displayln (hash-ref (syntax-debug-info #'name) 'context))
-             #;(syntax-local-lift-expression
-                #'(quote-syntax (a-chunk name (expr ...))))
-             (syntax-local-lift-module-end-declaration
-              #'(begin
-                  (require macro-debugger/syntax-browser)
-                  (define-syntax (step3 stx22)
-                    (syntax-case stx22 ()
-                      [(_ aaa bbb xxx)
-                       (let ()
-                         (define +aaa (make-syntax-delta-introducer #'aaa (datum->syntax #f 'none)))
-                         (define +bbb (make-syntax-delta-introducer (syntax-local-identifier-as-binding #'bbb) (datum->syntax #f 'none)))
-                         (define aaa-bbb (+bbb (+aaa (datum->syntax #f 'none) 'add) 'remove))
-                         (define bbb-aaa (+aaa (+bbb (datum->syntax #f 'none) 'add) 'remove))
-                         (define +_aaa-bbb (make-syntax-delta-introducer aaa-bbb (datum->syntax #f 'none)))
-                         (define +_bbb-aaa (make-syntax-delta-introducer aaa-bbb (datum->syntax #f 'none)))
-                         (newline)
-                         (display "aaaU ") (displayln (hash-ref (syntax-debug-info (syntax-local-identifier-as-binding #'aaa)) 'context))
-                         (display "bbb ") (displayln (hash-ref (syntax-debug-info #'bbb) 'context))
-                         (display "+aaa ") (displayln (hash-ref (syntax-debug-info (+aaa (datum->syntax #f 'none) 'add)) 'context))
-                         (display "+bbb ") (displayln (hash-ref (syntax-debug-info (+bbb (datum->syntax #f 'none) 'add)) 'context))
-                         (display "aaa-bbb ") (displayln (hash-ref (syntax-debug-info aaa-bbb) 'context))
-                         (display "bbb-aaa ") (displayln (hash-ref (syntax-debug-info bbb-aaa) 'context))
-                         (syntax-local-lift-expression (+_aaa-bbb #'xxx 'remove))
-                         #'(void))]))
-                  (define-syntax (fo _)
-                    (define a #'here)
-                    (define b (syntax-local-introduce #'here))
-                    (define intr (make-syntax-delta-introducer b a))
-                    
-
-                    (display (syntax->datum #'name))
-                    (display " 2 ")
-                    (displayln (hash-ref (syntax-debug-info #'name) 'context))
-                    (display "a2 ")
-                    (displayln (hash-ref (syntax-debug-info a) 'context))
-                    (display "b2 ")
-                    (displayln (hash-ref (syntax-debug-info b) 'context))
-                    (display "i2 ")
-                    (displayln (hash-ref (syntax-debug-info (intr (datum->syntax #f 'xxx) 'add)) 'context))
-
-                    
-                    #;(syntax-local-lift-expression
-                       #`(quote-syntax (a-chunk xyz
-                                                (begin
-                                                  (displayln "hi")
-                                                  (require macro-debugger/syntax-browser)
-                                                  (browse-syntax (quote-syntax (a-chunk name expr ...)))))))
-                    #;(syntax-local-lift-expression
-                       #`(quote-syntax (a-chunk name
-                                                ;#,(hash-ref (syntax-debug-info a) 'context)
-                                                ;#,(hash-ref (syntax-debug-info b) 'context)
-                                                expr ...)))
-                    #;#'(begin)
-                    #`(step3 #,a
-                             #,b
-                             (quote-syntax (a-chunk name
-                                                    ;#,(hash-ref (syntax-debug-info a) 'context)
-                                                    ;#,(hash-ref (syntax-debug-info b) 'context)
-                                                    expr ...))))
-                  (fo))));(quote-syntax (a-chunk name expr ...)))
+           (syntax-local-lift-module-end-declaration
+            #'(begin
+                (define-syntax (macro-to-expand-unsyntax _)
+                  (define a #'here)
+                  (define b (syntax-local-identifier-as-binding
+                             (syntax-local-introduce #'here)))
+                  (define intr (make-syntax-delta-introducer b a))
+                  (syntax-local-lift-expression
+                   (intr #`(quote-syntax (a-chunk name expr ...)) 'flip))
+                  #'(begin))
+                (macro-to-expand-unsyntax)))
            ;; Default (old) behaviour, which does not support escaping (via #,):
            (syntax-local-lift-expression
             #'(quote-syntax (a-chunk name (expr ...)))))
 
+       
        ;; Extract require forms
        (with-syntax ([tag tag]
                      [str str]
                      [((for-label-mod ...) ...)
-                      (map (lambda (expr)
-                             (syntax-case expr (require)
-                               [(require mod ...)
-                                (let loop ([mods (syntax->list #'(mod ...))])
-                                  (cond
-                                    [(null? mods) null]
-                                    [else
-                                     (syntax-case (car mods)
-                                       (for-syntax quote submod)
-                                       [(submod ".." . _)
-                                        (loop (cdr mods))]
-                                       [(submod "." . _)
-                                        (loop (cdr mods))]
-                                       [(quote x)
-                                        (loop (cdr mods))]
-                                       [(for-syntax x ...)
-                                        (append (loop (syntax->list #'(x ...)))
-                                                (loop (cdr mods)))]
-                                       [x
-                                        (cons #'x (loop (cdr mods)))])]))]
-                               [else null]))
-                           (syntax->list #'(expr ...)))]
+                      (if (unbox no-auto-require?)
+                          #'()
+                          (map (lambda (expr)
+                                 (syntax-case expr (require)
+                                   [(require mod ...)
+                                    (let loop ([mods (syntax->list
+                                                      #'(mod ...))])
+                                      (cond
+                                        [(null? mods) null]
+                                        [else
+                                         (syntax-case (car mods)
+                                           (for-syntax quote submod)
+                                           [(submod ".." . _)
+                                            (loop (cdr mods))]
+                                           [(submod "." . _)
+                                            (loop (cdr mods))]
+                                           [(quote x)
+                                            (loop (cdr mods))]
+                                           [(for-syntax x ...)
+                                            (append (loop (syntax->list
+                                                           #'(x ...)))
+                                                    (loop (cdr mods)))]
+                                           [x
+                                            (cons #'x (loop (cdr mods)))])]))]
+                                   [else null]))
+                               (syntax->list #'(expr ...))))]
                      
                      [(rest ...) (if n
                                      #`((subscript #,(format "~a" n)))

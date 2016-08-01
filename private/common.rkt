@@ -147,16 +147,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require (only-in typed/racket)) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; WORKAROUND ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require (for-syntax racket/pretty))
+(require (for-syntax racket/pretty
+                     "no-auto-require.rkt"))
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-parse stx
-    [(_modbeg (lang:id (~optional (~and no-require-lang #:no-require-lang)))
+    [(_modbeg (lang:id (~optional (~and no-require-lang #:no-require-lang))
+                       (~optional (~and no-auto-require #:no-auto-require)))
               body0 . body)
      (let ()
        (define lang-sym (syntax-e #'lang))
        (let ([expanded 
               (expand `(,#'module
                         scribble-lp-tmp-name hyper-literate/private/lp
+                        (require (for-syntax racket/base
+                                             hyper-literate/private/no-auto-require))
+                        (begin-for-syntax (set-box! no-auto-require?
+                                                    ,(if (attribute no-auto-require) #t #f)))
                         (define-syntax-rule (if-preexpanding a b) a)
                         (define-syntax-rule (when-preexpanding . b) (begin . b))
                         (define-syntax-rule (unless-preexpanding . b) (begin))
@@ -204,11 +210,15 @@
                                    ;; and make these identifiers exported by
                                    ;; hyper-literate
                                    (strip-context
-                                    #'(#;(define-syntax-rule (if-preexpanding a b)
+                                    #`((require (for-syntax racket/base
+                                                            hyper-literate/private/no-auto-require))
+                                       (begin-for-syntax (set-box! no-auto-require?
+                                                                   #,(if (attribute no-auto-require) #t #f)))
+                                       (define-syntax-rule (if-preexpanding a b)
                                          b)
-                                       #;(define-syntax-rule (when-preexpanding . b)
+                                       (define-syntax-rule (when-preexpanding . b)
                                          (begin))
-                                       #;(define-syntax-rule
+                                       (define-syntax-rule
                                            (unless-preexpanding . b)
                                          (begin . b))
                                        (require scribble/manual
