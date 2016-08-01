@@ -132,13 +132,13 @@
     (syntax-case exprs ()
       [() (void)]
       [(expr . exprs)
-       (syntax-case #'expr (define-syntax quote-syntax)
+       (syntax-case #'expr (define-values quote-syntax)
          [(define-values (lifted) (quote-syntax (a-chunk id body ...)))
           (eq? (syntax-e #'a-chunk) 'a-chunk)
           (begin
             (add-to-chunk! #'id (syntax->list #'(body ...)))
             (loop #'exprs))]
-         [_ 
+         [_
           (loop #'exprs)])])))
 
 (require (for-syntax racket/syntax
@@ -204,11 +204,11 @@
                                    ;; and make these identifiers exported by
                                    ;; hyper-literate
                                    (strip-context
-                                    #'((define-syntax-rule (if-preexpanding a b)
+                                    #'(#;(define-syntax-rule (if-preexpanding a b)
                                          b)
-                                       (define-syntax-rule (when-preexpanding . b)
+                                       #;(define-syntax-rule (when-preexpanding . b)
                                          (begin))
-                                       (define-syntax-rule
+                                       #;(define-syntax-rule
                                            (unless-preexpanding . b)
                                          (begin . b))
                                        (require scribble/manual
