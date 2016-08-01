@@ -60,7 +60,7 @@
                 (macro-to-expand-unsyntax)))
            ;; Default (old) behaviour, which does not support escaping (via #,):
            (syntax-local-lift-expression
-            #'(quote-syntax (a-chunk name (expr ...)))))
+            #'(quote-syntax (a-chunk name expr ...))))
 
        
        ;; Extract require forms
