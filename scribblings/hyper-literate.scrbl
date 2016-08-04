@@ -1,9 +1,15 @@
 #lang scribble/manual
-@require[@for-label[hyper-literate
-                    racket/base]]
+@require[@for-label[;hyper-literate
+ racket/base]]
 
 @title{hyper-literate}
 @author{Georges Dupéron}
+
+@(require scribble/manual
+          scribble/core
+          scribble/decode
+          scribble/racket
+          (only-in scribble/racket value-link-color))
 
 @defmodulelang[hyper-literate]
 
@@ -28,7 +34,7 @@ options:
    (list
     @paragraph[(style #f '())]{
  @tt{@litchar{#lang} @racketmodname[hyper-literate] @racket[_lang]
-  @racket[maybe-no-req] @racket[maybe-no-auto]}})
+  @racket[_maybe-no-req] @racket[_maybe-no-auto]}})
    flow-empty-line
    (list
     @racketgrammar*[
@@ -38,6 +44,36 @@ options:
 where @racket[_lang] is a module name which can be used as
 a @litchar{#lang}, for example @racketmodname[typed/racket]
 or @racketmodname[racket/base].
+
+The current implementation of hyper-literate needs to inject
+a @racket[(require _lang)] in the expanded module, in order
+to have the arrows properly working in DrRacket for
+"built-in" identifiers which are provided by the 
+@racket[_lang] itself. This extra @racket[require] statement
+can however conflict with later user-provided 
+@racket[require] statements, which would otherwise shadow
+the built-ins. The @racket[#:no-require-lang] option
+disables that behaviour, and has the only drawback that
+built-ins of the @racket[_lang] language do not have an
+arrow in DrRacket (but they still should be highlighted with
+a turquoise background when hovered with the mouse).
+
+The current implementation of @racketmodname[scribble/lp2],
+on which @racketmodname[hyper-literate] relies (with a few
+changes), extracts the @racket[require] statements from
+chunks of code, and passes them to 
+@racket[(require (for-label …))]. The goal is to have
+identifiers from required modules automatically highlighted
+and hyperlinked to their documentation. However, all
+meta-levels are smashed into the @racket[#f] i.e. 
+@racket[for-syntax] meta-level. As a consequence, conflicts
+can arise at the @racket[for-label] meta-level between two
+modules, even if these two modules were originally required
+at distinct meta-levels in the source program. It is
+possible in this case to disable the feature using 
+@racket[#:no-auto-require], and to manually call 
+@racket[(require (for-label …))] and handle conflicting
+identifiers in a more fine-grained way.
 
 @section{What is hyper-literate programming?}
 
@@ -72,13 +108,32 @@ their result, etc.
 
 @section{Chunks of code}
 
-@(module scribble-doc-links racket/base
-   (require scribble/manual
-            (for-label scribble/lp2))
-   (provide (all-defined-out))
-   (define scribble-chunk @racket[chunk])
-   (define scribble-CHUNK @racket[CHUNK]))
-@(require 'scribble-doc-links)
+@; @racket[chunk] does not work for these, probably due to the use of either:
+@;   @title[#:tag "lp" …]{Literate Programming}
+@; or:
+@;   @defmodulelang[scribble/lp2 #:use-sources (scribble/lp)]{…}
+@; in scribble-doc/scribblings/scribble/lp.scrbl
+@(define scribble-chunk
+   (element symbol-color
+            (make-link-element value-link-color
+                               (decode-content (list "chunk"))
+                               '(form ((lib "scribble/lp.rkt") chunk)))))
+@(define scribble-CHUNK
+   (element symbol-color
+            (make-link-element value-link-color
+                               (decode-content (list "CHUNK"))
+                               '(form ((lib "scribble/lp.rkt") CHUNK)))))
+
+@;{
+ @(module scribble-doc-links racket/base
+    (require scribble/manual
+             (for-label scribble/lp2
+                        scribble/private/lp))
+    (provide (all-defined-out))
+    (define scribble-chunk @racket[chunk])
+    (define scribble-CHUNK @racket[CHUNK]))
+ @(require 'scribble-doc-links)
+}
 
 @defform[(chunk <name> content ...)]{
  Same as @scribble-chunk from @racketmodname[scribble/lp2],
