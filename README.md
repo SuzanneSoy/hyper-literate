@@ -13,19 +13,19 @@ telling other programmers how the program works (instead of just telling the
 compiler what it does). Telling this story can be done using non-linear,
 hyperlinked documents.
 
-For now these utilities only help with manipulating LP chunks (e.g. repating
+For now these utilities only help with manipulating LP chunks (e.g. repeating
 the same chunk in several places in the output document, but keep a single
 copy in the source code).
 
 Ultimately, the reading experience should be closer to viewing an interactive
-presentation, focussing on the parts of the program that are of interest to
+presentation, focusing on the parts of the program that are of interest to
 you: expand on-screen the chunks you are curious about, run some tests and see
 their result, etc.
 
 * Imagine something like [code
   bubbles](http://www.andrewbragdon.com/codebubbles_site.asp), but with
-  explanative text comming along with the source code.
+  explanatory text coming along with the source code.
   
-* Imagine something like [Inform](http://inform7.com/), but focussed on
+* Imagine something like [Inform](http://inform7.com/), but focused on
   exploring a program instead of exploring an imaginary world — after all, a
   program is some kind of imaginary world.
