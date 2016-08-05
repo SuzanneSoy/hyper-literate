@@ -21,8 +21,8 @@ that it is possible to directly write
 @racketmodname[typed/racket] programs with 
 @racketmodname[hyper-literate], for example).
 
-On the first line, which begins with @tt{#lang
- hyper-literate}, the language recognises the following
+On the first line, which begins with @tt{@litchar{#lang}
+ @racketmodname[hyper-literate]}, the language recognises the following
 options:
 
 @(require scribble/core
@@ -113,6 +113,7 @@ their result, etc.
 @; or:
 @;   @defmodulelang[scribble/lp2 #:use-sources (scribble/lp)]{…}
 @; in scribble-doc/scribblings/scribble/lp.scrbl
+@; See scribble bug #51 https://github.com/racket/scribble/issues/51
 @(define scribble-chunk
    (element symbol-color
             (make-link-element value-link-color

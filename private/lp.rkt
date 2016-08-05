@@ -110,7 +110,9 @@
                                              rest ...))))
                     (#,racketblock expr ...))))
          #`(begin
-             (require (for-label for-label-mod ... ...))
+             #,@(if (null? (syntax-e #'(for-label-mod ... ...)))
+                   #'()
+                   #'((require (for-label for-label-mod ... ...))))
              #,@(if n
                     #'()
                     #'((define-syntax name (make-element-id-transformer
