@@ -56,7 +56,7 @@ the built-ins. The @racket[#:no-require-lang] option
 disables that behaviour, and has the only drawback that
 built-ins of the @racket[_lang] language do not have an
 arrow in DrRacket (but they still should be highlighted with
-a turquoise background when hovered with the mouse).
+a turquoise background when hovered over with the mouse).
 
 The current implementation of @racketmodname[scribble/lp2],
 on which @racketmodname[hyper-literate] relies (with a few
@@ -65,8 +65,8 @@ chunks of code, and passes them to
 @racket[(require (for-label …))]. The goal is to have
 identifiers from required modules automatically highlighted
 and hyperlinked to their documentation. However, all
-meta-levels are smashed into the @racket[#f] i.e. 
-@racket[for-syntax] meta-level. As a consequence, conflicts
+meta-levels are smashed into the @racket[#f], i.e. 
+@racket[for-label] meta-level. As a consequence, conflicts
 can arise at the @racket[for-label] meta-level between two
 modules, even if these two modules were originally required
 at distinct meta-levels in the source program. It is
@@ -86,8 +86,8 @@ using non-linear, hyperlinked documents.
 
 For now these utilities only help with manipulating literate
 programming chunks (e.g. repeating the same chunk in several
-places in the output document, but keep a single copy in the
-source code).
+places in the output document, but keeping a single copy in
+the source code).
 
 Ultimately, the reading experience should be closer to
 viewing an interactive presentation, focusing on the parts
@@ -170,9 +170,9 @@ where they appear using @racket[racketblock].
 The @racket[doc] submodule is declared using 
 @racket[module*], so that it can use 
 @racket[(require (submod ".."))] to use functions declared
-in the the chunks. For example, it should be possible to
-dynamically compute the result of a function, and insert it
-into the document, so that the value displayed always
+in the chunks. For example, it should be possible to
+dynamically compute the result of a function, and to insert
+it into the document, so that the value displayed always
 matches the implementation.
 
 When the file is expanded for the first time, however, the 
