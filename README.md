@@ -30,3 +30,12 @@ their result, etc.
 * Imagine something like [Inform](http://inform7.com/), but focused on
   exploring a program instead of exploring an imaginary world — after all, a
   program is some kind of imaginary world.
+
+Installation
+------------
+
+Install with:
+
+```
+raco pkg install --deps search-auto hyper-literate
+```
