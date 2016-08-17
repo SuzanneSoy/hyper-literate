@@ -15,7 +15,7 @@ compiler what it does). Telling this story can be done using non-linear,
 hyperlinked documents.
 
 For now these utilities only help with manipulating LP chunks (e.g. repeating
-the same chunk in several places in the output document, but keep a single
+the same chunk in several places in the output document, but keeping a single
 copy in the source code).
 
 Ultimately, the reading experience should be closer to viewing an interactive
