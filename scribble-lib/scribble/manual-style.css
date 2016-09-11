@@ -356,7 +356,10 @@ a:hover {
     .refcolumn {
         position: absolute;
         left: 66rem; right: 3em;
-        margin: 0;
+        margin-top: -1.2em;
+        margin-right: 0;
+        margin-bottom: 0;
+        margin-left: 0;
         float: right;
         max-width: 18rem;
     }
