@@ -7,7 +7,8 @@
                "scribble-lib"
                "typed-racket-lib"
                "typed-racket-more"
-               "typed-racket-doc"))
+               "typed-racket-doc"
+               "scribble-enhanced"))
 (define build-deps '("scribble-lib"
                      "racket-doc"
                      "rackunit-doc"

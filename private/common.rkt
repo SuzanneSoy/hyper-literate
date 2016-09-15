@@ -221,12 +221,12 @@
                                        (define-syntax-rule
                                            (unless-preexpanding . b)
                                          (begin . b))
-                                       (require scribble/manual
+                                       (require (only-in racket/require
+                                                         subtract-in)
+                                                (subtract-in scribble/manual
+                                                             scribble-enhanced)
+                                                scribble-enhanced
                                                 hyper-literate))))
-                               #,(datum->syntax #'ctx
-                                                `(require ,(datum->syntax #'bd1 'scribble/manual #'bd1 #'bd1)
-                                                          ,(datum->syntax #'bd1 'hyper-literate #'bd1 #'bd1)
-                                                          #;(only-in scribble/private/lp chunk CHUNK)))
                                (begn body0 . body))
                            ;(strip-context
                            #;#`(modl doc lng ;module doc scribble/doclang2
