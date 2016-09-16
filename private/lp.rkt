@@ -45,11 +45,10 @@
        ;; code.
        ;; For now, only #, i.e. unsyntax is supported, within @chunk.
        ;; Later support for UNSYNTAX within @CHUNK may be added.
-       (if unsyntax?
-           ;; New hack:
-           (syntax-local-lift-module-end-declaration
-            #'(begin
-                (define-syntax (macro-to-expand-unsyntax _)
+       (define expand-unsyntax
+         (if unsyntax?
+             ;; New hack:
+             #'((define-syntax (macro-to-expand-unsyntax _)
                   (define a #'here)
                   (define b (syntax-local-identifier-as-binding
                              (syntax-local-introduce #'here)))
@@ -58,11 +57,12 @@
                    (intr #`(quote-syntax (a-chunk ((... ...) name)
                                                   ((... ...) expr) ...))
                          'flip))
-                  #'(begin))
-                (macro-to-expand-unsyntax)))
-           ;; Default (old) behaviour, which does not support escaping (via #,):
-           (syntax-local-lift-expression
-            #'(quote-syntax (a-chunk name expr ...))))
+                  #'(void))
+                (macro-to-expand-unsyntax))
+             ;; Default (old) behaviour, which does not support escaping via #,
+             (begin (syntax-local-lift-expression
+                     #'(quote-syntax (a-chunk name expr ...)))
+                    #f)))
 
        
        ;; Extract require forms
@@ -110,9 +110,10 @@
                                              rest ...))))
                     (#,racketblock expr ...))))
          #`(begin
+             #,@(if expand-unsyntax expand-unsyntax #'())
              #,@(if (null? (syntax-e #'(for-label-mod ... ...)))
-                   #'()
-                   #'((require (for-label for-label-mod ... ...))))
+                    #'()
+                    #'((require (for-label for-label-mod ... ...))))
              #,@(if n
                     #'()
                     #'((define-syntax name (make-element-id-transformer
