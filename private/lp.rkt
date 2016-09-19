@@ -120,7 +120,7 @@
                                             (lambda (stx) #'(chunkref name))))
                        (begin-for-syntax (init-chunk-number #'name))))
              #,(if (attribute save-as)
-                   #'(define-syntax (save-as s) (syntax pre-content))
+                   #'(define-syntax (save-as s) (quote-syntax pre-content))
                    #'pre-content))))]))
 
 (define-syntax chunk (make-chunk #'racketblock #t))
