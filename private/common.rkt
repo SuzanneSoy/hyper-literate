@@ -221,7 +221,6 @@
                                        (define-syntax-rule (unless-preexpanding . b)
                                          (begin . b))
                                        (require scribble-enhanced/with-manual
-                                                scribble-enhanced
                                                 hyper-literate))))
                                (begn body0 . body))
                            ;(strip-context

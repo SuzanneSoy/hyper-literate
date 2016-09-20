@@ -1,11 +1,13 @@
 #lang scheme/base
 ;; Forked from scribble-lib/scribble/private/lp.rkt
 
-(require (for-syntax scheme/base
+(require scribble/decode
+         scribble-enhanced/with-manual
+         scribble/struct
+         (for-syntax scheme/base
                      syntax/boundmap
                      syntax/parse
-                     racket/syntax)
-         scribble/scheme scribble/decode scribble/manual scribble/struct)
+                     racket/syntax))
 
 (begin-for-syntax
   ;; maps chunk identifiers to a counter, so we can distinguish multiple uses
@@ -227,5 +229,5 @@
 
 
 (provide (all-from-out scheme/base
-                       scribble/manual)
+                       scribble-enhanced/with-manual)
          chunk CHUNK)
