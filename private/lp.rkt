@@ -19,18 +19,23 @@
      (+ 1 (free-identifier-mapping-get chunk-numbers id))))
   (define (init-chunk-number id)
     (free-identifier-mapping-put! chunk-numbers id 2))
-
   (define repeat-chunk-numbers (make-free-identifier-mapping))
+  (define (init-repeat-chunk-number id)
+    (free-identifier-mapping-put! repeat-chunk-numbers id 1))
+  (define (get-repeat-chunk-number id)
+    (free-identifier-mapping-get repeat-chunk-numbers
+                                 id
+                                 (lambda () 1)))  
   (define (get+increment-repeat-chunk-number! id)
     (let ([current (free-identifier-mapping-get repeat-chunk-numbers
                                                 id
                                                 (lambda () 1))])
-      (free-identifier-mapping-put! repeat-chunk-numbers id (add1 current))
       ;; note: due to multiple expansions, this does not increase exactly one at
       ;; a time but instead it can skip numbers. Since this is not visible by
       ;; the user, and just used as a token in the URL, it's okay as long as
       ;; compiling the same file twice gives the same numbers (which is
       ;; hopefully the case but hasn't been tested).
+      (free-identifier-mapping-put! repeat-chunk-numbers id (add1 current))
       current)))
 
 (require (for-syntax "no-auto-require.rkt"))
@@ -104,15 +109,16 @@
            #,@(if (null? (syntax-e #'(for-label-mod ... ...)))
                   #'()
                   #'((require (for-label for-label-mod ... ...))))))]))
-  
+
 (define-for-syntax ((make-chunk-display racketblock) stx)
   (syntax-parse stx
     ;; no need for more error checking, using chunk for the code will do that
     [(_ original-name:id name:id stxn:number expr ...)
      (define n (syntax-e #'stxn))
+     (define original-name:n (syntax-local-introduce
+                     (format-id #'original-name "~a:~a" #'original-name n)))
      (define n-repeat (get+increment-repeat-chunk-number!
-                       (syntax-local-introduce
-                        (format-id #'name "~a:~a" #'name n))))
+                       original-name:n))
      (define str (string-append (symbol->string (syntax-e #'name))))
      (define/with-syntax tag (format "chunk:~a:~a:~a" str n n-repeat))
      (define/with-syntax (rest ...)
@@ -124,25 +130,33 @@
              (and c (> c 2)))
            #`((subscript #,(format "~a" n)))
            #'()))
-     #`(make-splice
-        (list (make-toc-element
-               #f
-               (list (elemtag '(prefixable tag)
-                              (bold (italic (elemref '(prefixable tag)
-                                                     #:underline? #f
-                                                     #,str rest ...))
-                                    " ::=")))
-               (list (smaller (elemref '(prefixable tag) #:underline? #f
-                                       #,str
-                                       rest ...))))
-              (#,racketblock expr ...)))]))
+     ;; The (list) here could be important, to avoid the code being
+     ;; executed multiple times in weird ways, when pre-expanding.
+     #`(list
+        (make-splice
+         (list (make-toc-element
+                #f
+                (list (elemtag '(prefixable tag)
+                               (bold (italic (elemref '(prefixable tag)
+                                                      #:underline? #f
+                                                      #,str rest ...))
+                                     " ::=")))
+                (list (smaller (elemref '(prefixable tag) #:underline? #f
+                                        #,str
+                                        rest ...))))
+               (#,racketblock expr ...))))]))
 
 (define-for-syntax (make-chunk chunk-code chunk-display)
   (syntax-parser
     ;; no need for more error checking, using chunk for the code will do that
     [(_ (~optional (~seq #:save-as save-as:id)) name:id expr ...)
      (define n (get-chunk-number (syntax-local-introduce #'name)))
-     (define str (symbol->string (syntax-e #'name)))
+     (define/with-syntax name:n (format-id #'name "~a:~a" #'name (or n 1)))
+     
+     (define/with-syntax stripped-name
+       (regexp-replace #px"^<(.*)>$"
+                       (symbol->string (syntax-e #'name))
+                       "\\1"))
      
      (when n
        (inc-chunk-number (syntax-local-introduce #'name)))
@@ -159,21 +173,41 @@
                                         (lambda (stx) #'(chunkref name))))
                    (begin-for-syntax (init-chunk-number #'name))))
          #,(if (attribute save-as)
-               #'(define-syntax (save-as s)
-                   (syntax-case s ()
-                     [(_)
-                      #`(save-as #,(syntax-local-introduce
-                                    (quote-syntax name)))]
-                     [(_ newname)
-                      #`(stx-chunk-display
-                          #,(syntax-local-introduce
-                             (quote-syntax name))
-                         newname
-                         stx-n
-                         #,@(syntax-local-introduce
-                             (quote-syntax (expr ...))))]))
-               ;; The (list) here is important, to avoid the code being executed
-               ;; multiple times in weird ways, when pre-expanding.
+               #`(begin
+                   #,#'(define-syntax (do-for-syntax _)
+                         (init-repeat-chunk-number (quote-syntax name:n))
+                         #'(void))
+                   (do-for-syntax)
+                   (define-syntax (save-as s)
+                     (syntax-case s ()
+                       [(_)
+                        (let* ([local-name (syntax-local-introduce
+                                            (quote-syntax name))]
+                               [local-name:n (syntax-local-introduce
+                                              (quote-syntax name:n))]
+                               [n-repeat (get-repeat-chunk-number
+                                          local-name:n)])
+                          (with-syntax
+                              ([name-maybe-paren (if (> n-repeat 1)
+                                                     (format-id local-name
+                                                                "(~a)"
+                                                                stripped-name)
+                                                     local-name)])
+                            #'(save-as name-maybe-paren)))]
+                       [(_ newname)
+                        (with-syntax ([local-name
+                                       (syntax-local-introduce
+                                        (quote-syntax name))]
+                                      [(local-expr (... ...))
+                                       (syntax-local-introduce
+                                        (quote-syntax (expr ...)))])
+                          #`(stx-chunk-display
+                             local-name
+                             newname
+                             stx-n
+                             local-expr (... ...)))])))
+               ;; The (list) here could be important, to avoid the code being
+               ;; executed multiple times in weird ways, when pre-expanding.
                #`(list (stx-chunk-display name name stx-n expr ...))))]))
 
 (define-syntax chunk-code (make-chunk-code #t))

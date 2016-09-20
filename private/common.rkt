@@ -218,8 +218,7 @@
                                          b)
                                        (define-syntax-rule (when-preexpanding . b)
                                          (begin))
-                                       (define-syntax-rule
-                                           (unless-preexpanding . b)
+                                       (define-syntax-rule (unless-preexpanding . b)
                                          (begin . b))
                                        (require scribble-enhanced/with-manual
                                                 scribble-enhanced
