@@ -221,10 +221,7 @@
                                        (define-syntax-rule
                                            (unless-preexpanding . b)
                                          (begin . b))
-                                       (require (only-in racket/require
-                                                         subtract-in)
-                                                (subtract-in scribble/manual
-                                                             scribble-enhanced)
+                                       (require scribble-enhanced/with-manual
                                                 scribble-enhanced
                                                 hyper-literate))))
                                (begn body0 . body))
