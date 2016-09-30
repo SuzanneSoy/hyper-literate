@@ -159,7 +159,8 @@
        (let ([expanded 
               (expand `(,#'module
                         scribble-lp-tmp-name hyper-literate/private/lp
-                        (require (for-syntax racket/base
+                        (require hyper-literate/private/chunks-toc-prefix
+                                 (for-syntax racket/base
                                              hyper-literate/private/no-auto-require))
                         (begin-for-syntax (set-box! no-auto-require?
                                                     ,(if (attribute no-auto-require) #t #f)))
@@ -210,7 +211,8 @@
                                    ;; and make these identifiers exported by
                                    ;; hyper-literate
                                    (strip-context
-                                    #`((require (for-syntax racket/base
+                                    #`((require hyper-literate/private/chunks-toc-prefix
+                                                (for-syntax racket/base
                                                             hyper-literate/private/no-auto-require))
                                        (begin-for-syntax (set-box! no-auto-require?
                                                                    #,(if (attribute no-auto-require) #t #f)))

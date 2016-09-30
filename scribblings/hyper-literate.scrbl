@@ -1,6 +1,9 @@
 #lang scribble/manual
-@require[@for-label[;hyper-literate
- racket/base]]
+@require[racket/require
+         @for-label[hyper-literate
+                    racket/base
+                    (subtract-in scribble/manual hyper-literate)
+                    racket/contract]]
 
 @title{hyper-literate}
 @author{Georges Dupéron}
@@ -198,3 +201,55 @@ for the first time or not (in which case the
 @defform[(unless-preexpanding . body)]{
  Expands to @racket[(begin . body)] if the @racket[(submod "..")]
  module can be used, and expands to @racket[(begin)] otherwise.}
+
+@section{A note on literate programs as subsections of another document}
+
+To use @racket[include-section] on hyper-literate programs, a couple of
+workarounds are required to avoid issues with duplicate tags for
+identically-named chunks (like @racket[<*>], which is likely to always be
+present).
+
+@defparam[chunks-toc-prefix prefix-list (listof string?)]{
+ We give an example for two files which are part of a hypothetical
+ @elem[#:style 'tt "pkg"] package:
+
+ @itemlist[
+ @item{The main scribble file @filepath{main.scrbl} in the
+   @filepath{scribblings} sub-directory includes the hyper-literate file
+   @filepath{program.hl.rkt} located in the package's root directory, one
+   directory level above:
+  
+   @codeblock[#:keep-lang-line? #t
+ "#lang scribble/manual\n"
+ "@title{Main document title}\n"
+ "@include-section{../program.hl.rkt}\n"
+ "@; could include other hyper-literat programs here\n"]}
+ @item{To avoid issues with duplicate tag names, it is necessary to use the
+   @racket[#:tag-prefix] option on the hyper literate program's @racket[title].
+   Unfortunately, this breaks links to chunks in the table of contents, because
+   scribble does not automatically add the correct prefix to them. To ensure
+   that the links correctly work in the table of contents, it is necessary to
+   tell hyper-literate what is the chain of document includes. The whole
+   @filepath{program.hl.rkt} file will be:
+  
+   @codeblock[#:keep-lang-line? #t
+ "#lang hyper-literate racket/base\n"
+ "@title[#:tag-prefix '(lib \"pkg/program.hl.rkt\")]{Program title}\n"
+ "@(chunks-toc-prefix '(\"(lib pkg/scribblings/main.scrbl)\"\n"
+ "                      \"(lib pkg/program.hl.rkt)\"))\n"
+ "@chunk[<*>\n"
+ "       'program-code-here]\n"]
+
+   Note that the argument for the @racket[chunks-toc-prefix] parameter is a list
+   of string, and the strings are representations of module paths. The
+   occurrences of @racket[lib] above are not symbols, they are just part of the
+   string. Compare this with the following, which would be incorrect:
+
+   @codeblock[#:keep-lang-line? #t
+ "#lang hyper-literate racket/base\n"
+ "@title[#:tag-prefix '(lib \"pkg/program.hl.rkt\")]{Program title}\n"
+ "@; This is incorrect:\n"
+ "@(chunks-toc-prefix '((lib \"pkg/scribblings/main.scrbl\")\n"
+ "                      (lib \"pkg/program.hl.rkt\")))\n"
+ "@chunk[<*>\n"
+ "       'program-code-here]\n"]}]}

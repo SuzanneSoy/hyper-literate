@@ -40,7 +40,8 @@
       (free-identifier-mapping-put! repeat-chunk-numbers id (add1 current))
       current)))
 
-(require (for-syntax "no-auto-require.rkt"))
+(require (for-syntax "no-auto-require.rkt")
+         "chunks-toc-prefix.rkt")
 (define-for-syntax (make-chunk-code unsyntax?)
   (syntax-parser
     ;; no need for more error checking, using chunk for the code will do that
@@ -118,10 +119,13 @@
     [(_ original-name:id name:id stxn:number expr ...)
      (define n (syntax-e #'stxn))
      (define original-name:n (syntax-local-introduce
-                     (format-id #'original-name "~a:~a" #'original-name n)))
+                              (format-id #'original-name
+                                         "~a:~a"
+                                         #'original-name
+                                         n)))
      (define n-repeat (get+increment-repeat-chunk-number!
                        original-name:n))
-     (define str (string-append (symbol->string (syntax-e #'name))))
+     (define str (symbol->string (syntax-e #'name)))
      (define/with-syntax tag (format "chunk:~a:~a:~a" str n n-repeat))
      (define/with-syntax (rest ...)
        ;; if the would-be-next number for this chunk name is "2", then there is
@@ -143,9 +147,12 @@
                                                       #:underline? #f
                                                       #,str rest ...))
                                      " ::=")))
-                (list (smaller (elemref '(prefixable tag) #:underline? #f
-                                        #,str
-                                        rest ...))))
+                (list (smaller
+                       (make-link-element "plainlink"
+                                          (decode-content (list #,str rest ...))
+                                          `(elem (prefixable
+                                                  ,@(chunks-toc-prefix)
+                                                  tag))))))
                (#,racketblock expr ...))))]))
 
 (define-for-syntax (make-chunk chunk-code chunk-display)
@@ -230,4 +237,6 @@
 
 (provide (all-from-out scheme/base
                        scribble-enhanced/with-manual)
-         chunk CHUNK)
+         chunk
+         CHUNK
+         chunks-toc-prefix)
