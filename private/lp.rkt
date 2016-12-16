@@ -7,7 +7,9 @@
          (for-syntax scheme/base
                      syntax/boundmap
                      syntax/parse
-                     racket/syntax))
+                     racket/syntax
+                     racket/struct
+                     syntax/srcloc))
 
 (begin-for-syntax
   ;; maps chunk identifiers to a counter, so we can distinguish multiple uses
@@ -113,6 +115,18 @@
                   #'()
                   #'((require (for-label for-label-mod ... ...))))))]))
 
+(define-for-syntax (strip-source e)
+ (cond [(syntax? e)
+        (update-source-location
+         (datum->syntax e (strip-source (syntax-e e)) e e)
+         #:source #f)]
+       [(pair? e) (cons (strip-source (car e)) (strip-source (cdr e)))]
+       [(vector? e) (list->vector (strip-source (vector->list e)))]
+       [(prefab-struct-key e)
+        => (λ (k) (make-prefab-struct k (strip-source (struct->list e))))]
+       ;; TODO: hash tables
+       [else e]))
+
 (define-for-syntax ((make-chunk-display racketblock) stx)
   (syntax-parse stx
     ;; no need for more error checking, using chunk for the code will do that
@@ -153,7 +167,8 @@
                                           `(elem (prefixable
                                                   ,@(chunks-toc-prefix)
                                                   tag))))))
-               (#,racketblock expr ...))))]))
+               (#,racketblock . #,(strip-source #'(expr ...))
+                              ))))]))
 
 (define-for-syntax (make-chunk chunk-code chunk-display)
   (syntax-parser
@@ -175,7 +190,9 @@
      (define/with-syntax stx-chunk-display chunk-display)
      
      #`(begin
-         (stx-chunk-code name expr ...)
+         (stx-chunk-code name . #,(if preexpanding?
+                                      #'(expr ...)
+                                      #'(expr ...) #;(strip-source #'(expr ...))))
          #,@(if n
                 #'()
                 #'((define-syntax name (make-element-id-transformer
@@ -209,7 +226,7 @@
                                         (quote-syntax name))]
                                       [(local-expr (... ...))
                                        (syntax-local-introduce
-                                        (quote-syntax (expr ...)))])
+                                        (quote-syntax #,(strip-source #'(expr ...))))])
                           #`(stx-chunk-display
                              local-name
                              newname
@@ -217,7 +234,7 @@
                              local-expr (... ...)))])))
                ;; The (list) here could be important, to avoid the code being
                ;; executed multiple times in weird ways, when pre-expanding.
-               #`(list (stx-chunk-display name name stx-n expr ...))))]))
+               #`(list (stx-chunk-display name name stx-n . #,(strip-source #'(expr ...))))))]))
 
 (define-syntax chunk-code (make-chunk-code #t))
 (define-syntax CHUNK-code (make-chunk-code #f))

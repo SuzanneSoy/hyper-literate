@@ -7,6 +7,8 @@
 
 (require (for-syntax racket/base syntax/boundmap racket/list
                      syntax/strip-context
+                     syntax/srcloc
+                     racket/struct
                      syntax/srcloc))
 
 (begin-for-syntax
@@ -29,30 +31,14 @@
      chunks id
      `(,@(mapping-get chunks id) ,@exprs))))
 
-(define-for-syntax (tangle orig-stx req-lng)
+(define-for-syntax (tangle orig-stx)
   (define chunk-mentions '())
   (unless first-id
     (raise-syntax-error 'scribble/lp "no chunks"))
-  ;(define orig-stx (syntax-case stx () [(_ orig) #'orig]))
   (define (restore nstx d) (datum->syntax orig-stx d nstx nstx))
   (define (shift nstx) (replace-context orig-stx nstx))
   (define body
     (let ([main-id (or main-id first-id)])
-      ;; HACK to get arrows drawn for built-ins imported by the module language.
-      ;; TODO: it fails with type-expander.lp2.rkt, because it re-requires λ
-      ;;       (the new-λ) from 'main.
-      (when req-lng
-        (free-identifier-mapping-put!
-         chunk-groups main-id
-         (cons main-id (mapping-get chunk-groups main-id)))
-        (free-identifier-mapping-put!
-         chunks main-id
-         `(,#`(require #,(datum->syntax main-id
-                                        req-lng
-                                        req-lng
-                                        req-lng))
-           ,@(mapping-get chunks main-id))))
-      ;;;;;;;;;;;;;;
       (restore
        main-id
        (let loop ([block (get-chunk main-id)])
@@ -69,7 +55,7 @@
                       (list (restore expr (loop subs)))
                       (list (shift expr))))))
           block)))))
-  (with-syntax ([(body ...) (strip-comments body)]
+  (with-syntax ([(body0 body ...) (strip-comments body)]
                 ;; construct arrows manually
                 [((b-use b-id) ...)
                  (append-map (lambda (m)
@@ -78,12 +64,13 @@
                                             (syntax-local-introduce u)))
                                     (mapping-get chunk-groups m)))
                              chunk-mentions)])
-    ;(displayln (dynamic-require 'tyyyyyyyyyyyped/racket '#%module-begin))
     ;; TODO: use disappeared-use and disappeared-binding.
     ;; TODO: fix srcloc (already fixed?).
-    #`(begin (let ([b-id (void)]) b-use) ... body ...)
-    #;(replace-context #'#%module-begin;modbeg-ty
-                       #`(begin (let ([b-id (void)]) b-use) ... body ...))))
+    ;#`(#,(datum->syntax #'body0 'begin) (let ([b-id (void)]) b-use) ... body0 body ...)
+    (syntax-property
+     (syntax-property #`(#,(datum->syntax #'body0 'begin) body0 body ...)
+                      'disappeared-binding (syntax->list #'(b-id ...)))
+     'disappeared-use (syntax->list #'(b-use ...)))))
 
 (define-for-syntax (strip-comments body)
   (cond
@@ -144,26 +131,54 @@
 (require (for-syntax racket/syntax
                      syntax/parse))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require (only-in typed/racket)) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; WORKAROUND ;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require (for-syntax racket/pretty
                      "no-auto-require.rkt"))
+
+(define-for-syntax (strip-source e)
+  (cond [(syntax? e)
+         (update-source-location
+          (datum->syntax e (strip-source (syntax-e e)) e e)
+          #:source #f)]
+        [(pair? e) (cons (strip-source (car e)) (strip-source (cdr e)))]
+        [(vector? e) (list->vector (strip-source (vector->list e)))]
+        [(prefab-struct-key e)
+         => (λ (k) (make-prefab-struct k (strip-source (struct->list e))))]
+        ;; TODO: hash tables
+        [else e]))
+
+;; Many thanks to Alex Knauth and Matthew Flatt for finding out how to make
+;; module meta-languages.
+(define-syntax (continue stx)
+  (syntax-case stx ()
+    [(_self lang-module-begin . body)
+     (let ([expanded (local-expand 
+                      #`(lang-module-begin . body) 
+                      'module-begin 
+                      (list))])
+       (syntax-case expanded (#%plain-module-begin)
+         [(#%plain-module-begin . expanded-body)
+          #`(begin 
+              . 
+              #,((make-syntax-introducer) #'expanded-body))]))]))
+
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-parse stx
+    ;; #:no-require-lang is ignored, but still allowed for compatibility.
     [(_modbeg (lang:id (~optional (~and no-require-lang #:no-require-lang))
                        (~optional (~and no-auto-require #:no-auto-require)))
               body0 . body)
      (let ()
        (define lang-sym (syntax-e #'lang))
-       (let ([expanded 
+       (displayln (list (syntax-source #'lang) (syntax-line #'lang) (syntax-column #'lang) (syntax-position #'lang) (syntax-original? #'lang)))
+       (let ([expanded
               (expand `(,#'module
                         scribble-lp-tmp-name hyper-literate/private/lp
                         (require hyper-literate/private/chunks-toc-prefix
                                  (for-syntax racket/base
                                              hyper-literate/private/no-auto-require))
                         (begin-for-syntax (set-box! no-auto-require?
-                                                    ,(if (attribute no-auto-require) #t #f)))
+                                                    ,(if (attribute no-auto-require) #t #f))
+                                          (set-box! preexpanding? #t))
                         (define-syntax-rule (if-preexpanding a b) a)
                         (define-syntax-rule (when-preexpanding . b) (begin . b))
                         (define-syntax-rule (unless-preexpanding . b) (begin))
@@ -172,25 +187,20 @@
            [(module name elang (mb . stuff))
             (let ()
               (extract-chunks #'stuff)
-              (dynamic-require lang-sym #f)
-              (namespace-require `(for-meta -1 ,lang-sym))
-              #;(begin
-                  (define/with-syntax tngl (tangle #'body0))
-                  (define/with-syntax (tngl0 . tngl*) #'tngl)
-                  (define/with-syntax (ex-mod ex-nam ex-lng (ex-#%m . ex-rest))
-                    (expand-syntax
-                     #`(#,#'module hyper-literate-temp-expand #,lang-sym
-                                   #,(replace-context #'here #'tngl))))
-                  #`(ex-#%m #,(datum->syntax (syntax-local-introduce #'ex-rest)
-                                             '(#%require lang-sym))
-                            . ex-rest))
               (define/with-syntax tngl
-                (tangle #'body0 (if (attribute no-require-lang) #f #'lang)))
-              ;(replace-context
-              ;(namespace-symbol->identifier '#%module-begin)
-              ;#`(#,(syntax/loc #'lang #%module-begin) …)
-              #`(#,(namespace-symbol->identifier '#%module-begin)
-                 tngl
+                (tangle #'body0))
+              (define/with-syntax mb9 (datum->syntax #f '#%module-begin))
+              (define/with-syntax lang-modbeg (datum->syntax #'lang '#%module-begin))
+              ; See http://stackoverflow.com/questions/37867859/module-meta-language-in-racket :
+              #;(define expanded-main-mod-stx
+                  (local-expand
+                   (syntax-local-introduce
+                    (datum->syntax #f `(,#'module ignored ,(datum->syntax #f lang-sym #'lang #'lang) (,#'mb9 ,(syntax-local-introduce #'tngl)))))
+                   'top-level
+                   (list)))
+              ;(syntax-case expanded-main-mod-stx ();(module #%plain-module-begin)
+              ;[(module _ lng11 (#%plain-module-begin . mod-body11))
+              #`(#%plain-module-begin
                  #,@(if submod?
                         (list
                          (with-syntax*
@@ -204,32 +214,34 @@
                                                            #:span 14)]
                               [lng (datum->syntax #'ctx 'scribble/doclang2 #'bd1 #'bd1)]
                               [begn (datum->syntax #'ctx 'begin)])
-                           #`(module* doc lng ;module doc scribble/doclang2
-                               #,@(syntax-local-introduce
-                                   ;; TODO: instead use:
-                                   ;; (begin-for-syntax (set! preexpanding #f))
-                                   ;; and make these identifiers exported by
-                                   ;; hyper-literate
-                                   (strip-context
-                                    #`((require hyper-literate/private/chunks-toc-prefix
-                                                (for-syntax racket/base
-                                                            hyper-literate/private/no-auto-require))
-                                       (begin-for-syntax (set-box! no-auto-require?
-                                                                   #,(if (attribute no-auto-require) #t #f)))
-                                       (define-syntax-rule (if-preexpanding a b)
-                                         b)
-                                       (define-syntax-rule (when-preexpanding . b)
-                                         (begin))
-                                       (define-syntax-rule (unless-preexpanding . b)
-                                         (begin . b))
-                                       (require scribble-enhanced/with-manual
-                                                hyper-literate))))
-                               (begn body0 . body))
-                           ;(strip-context
-                           #;#`(modl doc lng ;module doc scribble/doclang2
-                                     
-                                     (begn body0 . body))))
-                        '())))])))]))
+                           (strip-source
+                            #`(module* doc lng ;module doc scribble/doclang2
+                                #,@(syntax-local-introduce
+                                    ;; TODO: instead use:
+                                    ;; (begin-for-syntax (set! preexpanding #f))
+                                    ;; and make these identifiers exported by
+                                    ;; hyper-literate
+                                    (strip-context
+                                     #`((require hyper-literate/private/chunks-toc-prefix
+                                                 (for-syntax racket/base
+                                                             hyper-literate/private/no-auto-require))
+                                        (begin-for-syntax
+                                          (set-box! no-auto-require?
+                                                    #,(if (attribute no-auto-require) #t #f))
+                                          (set-box! preexpanding? #f))
+                                        (define-syntax-rule (if-preexpanding a b)
+                                          b)
+                                        (define-syntax-rule (when-preexpanding . b)
+                                          (begin))
+                                        (define-syntax-rule (unless-preexpanding . b)
+                                          (begin . b))
+                                        (require scribble-enhanced/with-manual
+                                                 hyper-literate))))
+                                (begn body0 . body)))))
+                        '())
+                 (require lang)
+                 (continue lang-modbeg tngl)) ;; TODO: put . tngl and remove the (begin _)
+              )])))]))
 
 (define-syntax module-begin/plain (make-module-begin #f))
 (define-syntax module-begin/doc (make-module-begin #t))

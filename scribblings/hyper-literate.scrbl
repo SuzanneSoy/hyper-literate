@@ -52,14 +52,11 @@ The current implementation of hyper-literate needs to inject
 a @racket[(require _lang)] in the expanded module, in order
 to have the arrows properly working in DrRacket for
 "built-in" identifiers which are provided by the 
-@racket[_lang] itself. This extra @racket[require] statement
-can however conflict with later user-provided 
-@racket[require] statements, which would otherwise shadow
-the built-ins. The @racket[#:no-require-lang] option
-disables that behaviour, and has the only drawback that
-built-ins of the @racket[_lang] language do not have an
-arrow in DrRacket (but they still should be highlighted with
-a turquoise background when hovered over with the mouse).
+@racket[_lang] itself. The @racket[require] statement is
+injected after the whole ``code'' module has been expanded.
+It is worth noting that an extra scope is added to the expanded
+body of the module, in order to make any @racket[require] form
+within more specific than the @racket[(require _lang)].
 
 The current implementation of @racketmodname[scribble/lp2],
 on which @racketmodname[hyper-literate] relies (with a few
@@ -77,6 +74,24 @@ possible in this case to disable the feature using
 @racket[#:no-auto-require], and to manually call 
 @racket[(require (for-label …))] and handle conflicting
 identifiers in a more fine-grained way.
+
+@deprecated[#:what @racket[#:no-require-lang] ""]{
+                                                  
+ The @racket[#:no-require-lang] is deprecated starting from version 0.1, and
+ is not needed anymore. It is still accepted for backwards compatibility. Note
+ that version 0.1 of this library requires a fairly recent Racket version to
+ work properly (it needs v.6.7.0.4 with the commit
+ @tt{8a7852ebbfeb85a8f860700ba5ae481ed7aa9b41}, or v.6.7.0.5 or later). By
+ default, raco will install v0.0 of hyper-literate on older Racket versions.
+
+ The extra @racket[require] statement injected by
+ @racketmodname[hyper-literate] could in previous versions conflict with
+ user-written @racket[require] statements. These @racket[require] statements
+ can shadow some built-ins, and this case would yield conflicts. The
+ @racket[#:no-require-lang] option disables that behaviour in versions < 0.1,
+ and has the only drawback that built-ins of the @racket[_lang] language do not
+ have an arrow in DrRacket (but they still should be highlighted with -a
+ turquoise background when hovered over with the mouse).}
 
 @section{What is hyper-literate programming?}
 

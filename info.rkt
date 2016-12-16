@@ -17,5 +17,5 @@
                       ("test/test.hl.rkt" () (omit-start))
                       ("test/test2.hl.rkt" () (omit-start))))
 (define pkg-desc "Description Here")
-(define version "0.0")
+(define version "0.1")
 (define pkg-authors '(|Georges Dupéron|))
