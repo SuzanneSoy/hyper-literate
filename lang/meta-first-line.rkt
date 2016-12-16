@@ -10,7 +10,6 @@
          meta-read-syntax-inside)
 
 (define (meta-read-inside in . args)
-  (displayln args)
   (apply read-inside args))
 
 (define (meta-read-syntax-inside source-name in . args)

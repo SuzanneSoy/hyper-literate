@@ -169,7 +169,6 @@
               body0 . body)
      (let ()
        (define lang-sym (syntax-e #'lang))
-       (displayln (list (syntax-source #'lang) (syntax-line #'lang) (syntax-column #'lang) (syntax-position #'lang) (syntax-original? #'lang)))
        (let ([expanded
               (expand `(,#'module
                         scribble-lp-tmp-name hyper-literate/private/lp
