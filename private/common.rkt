@@ -152,7 +152,10 @@
   (syntax-case stx ()
     [(_self lang-module-begin . body)
      (let ([expanded (local-expand 
-                      #`(lang-module-begin . body) 
+                      (datum->syntax stx
+                                     `(,#'lang-module-begin . ,#'body)
+                                     stx
+                                     stx)
                       'module-begin 
                       (list))])
        (syntax-case expanded (#%plain-module-begin)

@@ -9,7 +9,7 @@ hyper-literate/lang
 ;; don't use scribble-base-info for the #:info arg, since
 ;; scribble/lp files are not directly scribble'able.
 #:language-info (scribble-base-language-info)
-#:info (wrapped-scribble-base-reader-info)
+#:info orig-scribble-base-reader-info ;(wrapped-scribble-base-reader-info)
 (require "meta-first-line.rkt"
          (only-in scribble/base/reader
                   scribble-base-reader-info
