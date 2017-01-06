@@ -128,7 +128,7 @@
        ;; TODO: hash tables
        [else e]))
 
-(define-for-syntax ((make-chunk-display racketblock) stx)
+(define-for-syntax ((make-chunk-display racketblock unsyntax-id) stx)
   (syntax-parse stx
     ;; no need for more error checking, using chunk for the code will do that
     [(_ (original-before-expr ...)
@@ -159,7 +159,15 @@
      ;; and stashed away by read-syntax in "../lang/meta-first-line.rkt"
      (define/with-syntax (_ . expr*+comments)
        (restore-#%comment #'(original-before-expr ... expr ...)
-                          #:replace-with #'code:comment
+                          #:replace-with
+                          (λ (stx)
+                            (syntax-parse stx
+                              #:datum-literals (#%comment)
+                              [({~and #%comment com} . rest)
+                               #:with c-c (datum->syntax #'com 'code:comment #'com #'com)
+                               (datum->syntax stx `(,#'c-c (,unsyntax-id . ,#'rest)) stx stx)]
+                              [other
+                               #'other]))
                           #:scope #'original-name))
      ;; The (list) here could be important, to avoid the code being
      ;; executed multiple times in weird ways, when pre-expanding.
@@ -256,8 +264,8 @@
 
 (define-syntax chunk-code (make-chunk-code #t))
 (define-syntax CHUNK-code (make-chunk-code #f))
-(define-syntax chunk-display (make-chunk-display #'racketblock))
-(define-syntax CHUNK-display (make-chunk-display #'RACKETBLOCK))
+(define-syntax chunk-display (make-chunk-display #'racketblock #'unsyntax))
+(define-syntax CHUNK-display (make-chunk-display #'RACKETBLOCK #'UNSYNTAX))
 (define-syntax chunk (make-chunk #'chunk-code #'chunk-display))
 (define-syntax CHUNK (make-chunk #'CHUNK-code #'CHUNK-display))
 

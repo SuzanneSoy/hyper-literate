@@ -27,18 +27,21 @@
           'unsyntax)))
 
   (define (make-comment-readtable #:readtable [rt (current-readtable)]
-                                  #:comment-wrapper [comment-wrapper 'code:comment])
+                                  #:comment-wrapper [comment-wrapper 'code:comment]
+                                  #:unsyntax [unsyntax? #t])
     (make-readtable rt
                     #\; 'terminating-macro
                     (case-lambda 
                      [(char port)
                       (do-comment port
                                   (lambda () (read/recursive port #\@))
-                                  #:comment-wrapper comment-wrapper)]
+                                  #:comment-wrapper comment-wrapper
+                                  #:unsyntax unsyntax?)]
                      [(char port src line col pos)
                       (let ([v (do-comment port
                                            (lambda () (read-syntax/recursive src port #\@))
-                                           #:comment-wrapper comment-wrapper)])
+                                           #:comment-wrapper comment-wrapper
+                                           #:unsyntax unsyntax?)])
                         (let-values ([(eline ecol epos) (port-next-location port)])
                           (datum->syntax
                            #f
@@ -47,7 +50,8 @@
 
   (define (do-comment port
                       recur
-                      #:comment-wrapper [comment-wrapper 'code:comment])
+                      #:comment-wrapper [comment-wrapper 'code:comment]
+                      #:unsyntax [unsyntax? #t])
     #;(let loop ()
         (when (equal? #\; (peek-char port))
           (read-char port)
@@ -55,20 +59,23 @@
     #;(when (equal? #\space (peek-char port))
         (read-char port))
     (define comment-text
-      `(,(unsyntaxer)
-        (t
-         ,@(append-strings
-            (let loop ()
-              (let ([c (read-char port)])
-                (cond
-                  [(or (eof-object? c)
-                       (char=? c #\newline))
-                   null]
-                  [(char=? c #\@)
-                   (cons (recur) (loop))]
-                  [else 
-                   (cons (string c)
-                         (loop))])))))))
+      `(t
+        ,@(append-strings
+           (let loop ()
+             (let ([c (read-char port)])
+               (cond
+                 [(or (eof-object? c)
+                      (char=? c #\newline))
+                  null]
+                 [(char=? c #\@)
+                  (cons (recur) (loop))]
+                 [else 
+                  (cons (string c)
+                        (loop))]))))))
+    (define comment-unsyntax
+      (if unsyntax?
+          `(,(unsyntaxer) ,comment-text)
+          comment-text))
     `(,comment-wrapper ,comment-text))
   
   (define (append-strings l)

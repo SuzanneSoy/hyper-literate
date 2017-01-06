@@ -18,7 +18,8 @@
    #:datum-readtable (λ (rt)
                        (make-comment-readtable
                         #:readtable rt
-                        #:comment-wrapper '#%comment))))
+                        #:comment-wrapper '#%comment
+                        #:unsyntax #f))))
 
 
 (define (meta-read-inside in . args)
@@ -128,9 +129,13 @@
     (-> syntax? (or/c #f comments-after/c))
     (syntax-property stx 'comments-after))
 
-  (define (restore-#%comment stx
-                             #:replace-with (replace-with #f)
-                             #:scope [scope (datum->syntax #f 'zero)])
+  (define/contract (restore-#%comment stx
+                                      #:replace-with (replace-with #f)
+                                      #:scope [scope (datum->syntax #f 'zero)])
+    (->* (syntax?)
+         (#:replace-with [or/c #f syntax? (-> syntax? syntax?)]
+          #:scope identifier?)
+         syntax?)
     (define (erase-props stx)
       (define stx* (if (syntax-property stx 'first-comments)
                        (syntax-property stx 'first-comments #f)
@@ -144,15 +149,26 @@
       (syntax-parse commentᵢ
         #:datum-literals (#%comment)
         [({~and c #%comment} . rest)
-         (datum->syntax commentᵢ
-                        `(,(datum->syntax #'c replace-with #'c #'c)
-                          . ,((make-syntax-delta-introducer
-                               scope
-                               (datum->syntax #f 'zero))
-                              #'rest
-                              'add))
-                        commentᵢ
-                        commentᵢ)]
+         (if (syntax? replace-with)
+             (datum->syntax commentᵢ
+                            `(,(datum->syntax #'c replace-with #'c #'c)
+                              . ,((make-syntax-delta-introducer
+                                   scope
+                                   (datum->syntax #f 'zero))
+                                  #'rest
+                                  'add))
+                            commentᵢ
+                            commentᵢ)
+             (replace-with
+              (datum->syntax commentᵢ
+                             `(,#'c
+                               . ,((make-syntax-delta-introducer
+                                    scope
+                                    (datum->syntax #f 'zero))
+                                   #'rest
+                                   'add))
+                             commentᵢ
+                             commentᵢ)))]
         [_
          commentᵢ]))
     (define (replace-in-after comments)
