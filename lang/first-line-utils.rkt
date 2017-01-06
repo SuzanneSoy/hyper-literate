@@ -2,7 +2,8 @@
 
 (require racket/port)
 
-(provide read-syntax-whole-first-line)
+(provide read-whole-first-line
+         read-syntax-whole-first-line)
 
 (define (read-line-length port)
   (let* ([peeking (peeking-input-port port)]
@@ -14,10 +15,16 @@
 (define (narrow-to-one-line port)
   (make-limited-input-port port (read-line-length port)))
 
-(define (read-syntax-whole-first-line source-name in)
+(define (read-*-whole-first-line rec-read in)
   (define in1 (narrow-to-one-line in))
   (let loop ([res '()])
-    (define res+ (read-syntax source-name in1))
+    (define res+ (rec-read in1))
     (if (eof-object? res+)
         (reverse res)
         (loop (cons res+ res)))))
+
+(define (read-whole-first-line in)
+  (read-*-whole-first-line (λ (in1) (read in1)) in))
+
+(define (read-syntax-whole-first-line source-name in)
+  (read-*-whole-first-line (λ (in1) (read-syntax source-name in1)) in))

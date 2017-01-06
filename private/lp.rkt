@@ -9,7 +9,8 @@
                      syntax/parse
                      racket/syntax
                      racket/struct
-                     syntax/srcloc))
+                     syntax/srcloc
+                     "../restore-comments.rkt"))
 
 (begin-for-syntax
   ;; maps chunk identifiers to a counter, so we can distinguish multiple uses
@@ -130,7 +131,11 @@
 (define-for-syntax ((make-chunk-display racketblock) stx)
   (syntax-parse stx
     ;; no need for more error checking, using chunk for the code will do that
-    [(_ original-name:id name:id stxn:number expr ...)
+    [(_ (original-before-expr ...)
+        original-name:id
+        name:id
+        stxn:number
+        expr ...)
      (define n (syntax-e #'stxn))
      (define original-name:n (syntax-local-introduce
                               (format-id #'original-name
@@ -150,6 +155,12 @@
              (and c (> c 2)))
            #`((subscript #,(format "~a" n)))
            #'()))
+     ;; Restore comments which have been read by the modified comment-reader
+     ;; and stashed away by read-syntax in "../lang/meta-first-line.rkt"
+     (define/with-syntax (_ . expr*+comments)
+       (restore-#%comment #'(original-before-expr ... expr ...)
+                          #:replace-with #'code:comment
+                          #:scope #'original-name))
      ;; The (list) here could be important, to avoid the code being
      ;; executed multiple times in weird ways, when pre-expanding.
      #`(list
@@ -167,13 +178,15 @@
                                           `(elem (prefixable
                                                   ,@(chunks-toc-prefix)
                                                   tag))))))
-               (#,racketblock . #,(strip-source #'(expr ...))
-                              ))))]))
+               (#,racketblock
+                . #,(strip-source #'expr*+comments)))))]))
 
 (define-for-syntax (make-chunk chunk-code chunk-display)
   (syntax-parser
     ;; no need for more error checking, using chunk for the code will do that
-    [(_ (~optional (~seq #:save-as save-as:id)) name:id expr ...)
+    [(_ (~optional (~seq #:save-as save-as:id))
+        {~and name:id original-before-expr}
+        expr ...)
      (define n (get-chunk-number (syntax-local-introduce #'name)))
      (define/with-syntax name:n (format-id #'name "~a:~a" #'name (or n 1)))
      
@@ -228,13 +241,18 @@
                                        (syntax-local-introduce
                                         (quote-syntax #,(strip-source #'(expr ...))))])
                           #`(stx-chunk-display
+                             (original-before-expr)
                              local-name
                              newname
                              stx-n
                              local-expr (... ...)))])))
                ;; The (list) here could be important, to avoid the code being
                ;; executed multiple times in weird ways, when pre-expanding.
-               #`(list (stx-chunk-display name name stx-n . #,(strip-source #'(expr ...))))))]))
+               #`(list (stx-chunk-display (original-before-expr)
+                                          name
+                                          name
+                                          stx-n
+                                          . #,(strip-source #'(expr ...))))))]))
 
 (define-syntax chunk-code (make-chunk-code #t))
 (define-syntax CHUNK-code (make-chunk-code #f))

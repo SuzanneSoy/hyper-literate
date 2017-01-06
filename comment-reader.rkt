@@ -1,3 +1,6 @@
+;; Copied and modified from https://github.com/racket/scribble/blob/
+;;    31ad440b75b189a2b0838aab011544d44d6b580/
+;;    scribble-lib/scribble/comment-reader.rkt
 (module comment-reader scheme/base
   (require (only-in racket/port peeking-input-port))
 
@@ -23,42 +26,50 @@
           (begin (read port) (read port))
           'unsyntax)))
 
-  (define (make-comment-readtable #:readtable [rt (current-readtable)])
+  (define (make-comment-readtable #:readtable [rt (current-readtable)]
+                                  #:comment-wrapper [comment-wrapper 'code:comment])
     (make-readtable rt
                     #\; 'terminating-macro
                     (case-lambda 
                      [(char port)
-                      (do-comment port (lambda () (read/recursive port #\@)))]
+                      (do-comment port
+                                  (lambda () (read/recursive port #\@))
+                                  #:comment-wrapper comment-wrapper)]
                      [(char port src line col pos)
-                      (let ([v (do-comment port (lambda () (read-syntax/recursive src port #\@)))])
+                      (let ([v (do-comment port
+                                           (lambda () (read-syntax/recursive src port #\@))
+                                           #:comment-wrapper comment-wrapper)])
                         (let-values ([(eline ecol epos) (port-next-location port)])
                           (datum->syntax
                            #f
                            v
                            (list src line col pos (and pos epos (- epos pos))))))])))
 
-  (define (do-comment port recur)
-    (let loop ()
-      (when (equal? #\; (peek-char port))
-        (read-char port)
-        (loop)))
-    (when (equal? #\space (peek-char port))
-      (read-char port))
-    `(code:comment
-      (,(unsyntaxer)
-       (t
-        ,@(append-strings
-           (let loop ()
-             (let ([c (read-char port)])
-               (cond
-                [(or (eof-object? c)
-                     (char=? c #\newline))
-                 null]
-                [(char=? c #\@)
-                 (cons (recur) (loop))]
-                [else 
-                 (cons (string c)
-                       (loop))]))))))))
+  (define (do-comment port
+                      recur
+                      #:comment-wrapper [comment-wrapper 'code:comment])
+    #;(let loop ()
+        (when (equal? #\; (peek-char port))
+          (read-char port)
+          (loop)))
+    #;(when (equal? #\space (peek-char port))
+        (read-char port))
+    (define comment-text
+      `(,(unsyntaxer)
+        (t
+         ,@(append-strings
+            (let loop ()
+              (let ([c (read-char port)])
+                (cond
+                  [(or (eof-object? c)
+                       (char=? c #\newline))
+                   null]
+                  [(char=? c #\@)
+                   (cons (recur) (loop))]
+                  [else 
+                   (cons (string c)
+                         (loop))])))))))
+    `(,comment-wrapper ,comment-text))
   
   (define (append-strings l)
     (let loop ([l l][s null])
