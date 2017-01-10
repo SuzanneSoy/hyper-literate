@@ -6,7 +6,7 @@
 (provide try-any->isexp*
          try-any->isexp
          any->isexp+non-sexp
-         NonSexpOf)
+         (struct-out NonSexp))
 
 (unsafe-require/typed racket/function
                       [[identity unsafe-cast-function] (∀ (A) (→ Any A))])
