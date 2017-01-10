@@ -17,6 +17,8 @@
          ISyntax-E
          (struct-out NonSyntax)
          ;(struct-out NonSexp) ; already exported in typed-syntax-convert.rkt
+         NonSyntaxOf
+         NonSexpOf
          any->isyntax
          syntax->isyntax
          any->isyntax-e)

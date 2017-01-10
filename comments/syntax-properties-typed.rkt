@@ -7,6 +7,8 @@
          extract-first-comments
          extract-comments-after)
 
+(require "typed-syntax.rkt")
+
 (define-type First-Comments
   (Rec R (Pairof (U #f (Pairof (Syntaxof 'saved-props+srcloc)
                                R))
