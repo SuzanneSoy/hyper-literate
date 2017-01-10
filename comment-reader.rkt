@@ -52,12 +52,6 @@
                       recur
                       #:comment-wrapper [comment-wrapper 'code:comment]
                       #:unsyntax [unsyntax? #t])
-    #;(let loop ()
-        (when (equal? #\; (peek-char port))
-          (read-char port)
-          (loop)))
-    #;(when (equal? #\space (peek-char port))
-        (read-char port))
     (define comment-text
       `(t
         ,@(append-strings

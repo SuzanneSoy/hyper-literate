@@ -5,11 +5,11 @@
          racket/syntax
          syntax/strip-context
          "first-line-utils.rkt"
-         (only-in "../comment-reader.rkt" make-comment-readtable))
+         (only-in "../comment-reader.rkt" make-comment-readtable)
+         "../comments/hide-comments.rkt")
 
 (provide meta-read-inside
-         meta-read-syntax-inside
-         restore-#%comment)
+         meta-read-syntax-inside)
 
 (define (make-at-reader+comments #:syntax? [syntax? #t] #:inside? [inside? #f])
   (make-at-reader
@@ -28,7 +28,7 @@
                     args))
   `(,rd1 . ,rd))
 
-(begin
+#;(begin
   (require (rename-in syntax/parse [...+ …+])
            syntax/stx
            racket/match
@@ -357,7 +357,6 @@
                          a
                          ([#%comment c2] . b)
                          c)))
-  ;; TODO: test restore-comments on an expression which has an 'after-comments
   )
 
 (define (meta-read-syntax-inside source-name in . args)

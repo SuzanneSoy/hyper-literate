@@ -1,3 +1,3 @@
 #lang racket
-(require "lang/meta-first-line.rkt")
+(require "comments/restore-comments.rkt")
 (provide restore-#%comment)
