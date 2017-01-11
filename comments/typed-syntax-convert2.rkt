@@ -73,27 +73,29 @@
 (define-type ISyntax (ISyntaxOf Nothing Nothing))
 (define-type ISyntax-E (ISyntaxOf-E Nothing Nothing))
 
+(define-type (Result A) (U (Pairof A (U 'modified 'unmodified))
+                           (Pairof #f #f)))
+(define Result#f (cons #f #f))
+
 (: syntax->isyntax (∀ (A B) (→ (Syntaxof Any)
-                               (→ Any (Values A (U 'modified 'unmodified #;#f)))
-                               (→ Any (Values B (U 'modified 'unmodified #;#f)))
-                               (Values (ISyntaxOf A B) ;; TODO: change to (SyntaxOf (ISnyntaxOf-E …))
-                                       (U 'modified 'unmodified #;#f)))))
+                               (→ Any (Result A))
+                               (→ Any (Result B))
+                               (U (Result (ISyntaxOf A B)))))) ;; TODO: change to (SyntaxOf (ISnyntaxOf-E …))
 (define (syntax->isyntax stx nstx nsexp)
   (define e (syntax-e stx))
-  (define-values (e* status) (any->isyntax-e e nstx nsexp))
+  (match-define (cons e* status) (any->isyntax-e e nstx nsexp))
   (case status
     [(unmodified)
-     (values (unsafe-cast e (ISyntaxOf A B)) 'unmodified)]
+     (cons (unsafe-cast e (ISyntaxOf A B)) 'unmodified)]
     [(modified)
-     (values (datum->syntax* stx e* stx stx) 'modified)]
-    #;[(#f)
-     (values #f #f)]))
+     (cons (datum->syntax* stx e* stx stx) 'modified)]
+    [(#f)
+     Result#f]))
 
 (: any->isyntax (∀ (A B) (→ Any
-                            (→ Any (Values A (U 'modified 'unmodified #;#f)))
-                            (→ Any (Values B (U 'modified 'unmodified #;#f)))
-                            (Values (ISyntaxOf A B)
-                                    (U 'modified 'unmodified #;#f)))))
+                            (→ Any (Result A))
+                            (→ Any (Result B))
+                            (Result (ISyntaxOf A B)))))
 (define (any->isyntax e nstx nsexp)
   (if (syntax? e)
       (syntax->isyntax e nstx nsexp)
@@ -101,158 +103,149 @@
 
 (: listof-any->listof-isyntax
    (∀ (A B) (→ (Listof Any)
-               (→ Any (Values A (U 'modified 'unmodified #;#f)))
-               (→ Any (Values B (U 'modified 'unmodified #;#f)))
-               (Pairof (Listof (ISyntaxOf A B))
-                       (U 'modified 'unmodified #;#f)))))
+               (→ Any (Result A))
+               (→ Any (Result B))
+               (Result (Listof (ISyntaxOf A B))))))
 (define (listof-any->listof-isyntax e nstx nsexp)
-  (define e+status*
-    (map (λ ([eᵢ : Any])
-           (let-values ([(eᵢ* status) (any->isyntax eᵢ nstx nsexp)])
-             (cons eᵢ* status)))
+  (define e*+status
+    (foldr (λ ([eᵢ : Any] [acc : (Result (Listof (ISyntaxOf A B)))])
+             (match-let ([(cons eᵢ* status) (any->isyntax eᵢ nstx nsexp)])
+               (cond
+                 [(and (eq? status 'unmodified)
+                       (eq? (cdr acc) 'unmodified))
+                  (cons (cons eᵢ* (car acc)) 'unmodified)]
+                 [(or (eq? status #f)
+                      (eq? (cdr acc) #f))
+                  Result#f]
+                 [else
+                  (cons (cons eᵢ* (car acc)) 'modified)])))
+           (cons '() 'unmodified)
          e))
-  (define e* (map car e+status*))
-  (define status* (map cdr e+status*))
-  (cond
-    [(andmap (curry eq? 'unmodified) status*)
-     (cons (unsafe-cast e (Listof (ISyntaxOf A B))) 'unmodified)]
-    #;[(ormap (curry eq? #f) status*)
-     (cons #f #f)]
-    [else
-     (cons e* 'modified)]))
+  (define e* (car e*+status))
+  (define status (cdr e*+status))
+  (case status
+    [(unmodified) (cons (unsafe-cast e (Listof (ISyntaxOf A B))) 'unmodified)]
+    [(modified) (cons e* 'modified)]
+    [(#f) Result#f]))
 
 #;(: handle-pair (case→ (→ (Listof Any)
-                         (Values (Listof Syntax-E)
-                                 (U 'unmodified 'modified)))
-                      (→ (Pairof Any (Rec L (U Any (Pairof Any L))))
-                         (Values (Pairof Syntax-E
-                                         (Rec L (U Syntax-E
-                                                   (Pairof Syntax-E L))))
-                                 (U 'unmodified 'modified)))
-                      (→ Any
-                         (Values ISyntax
-                                 (U 'unmodified 'modified)))))
+                           (Values (Listof Syntax-E)
+                                   (U 'unmodified 'modified)))
+                        (→ (Pairof Any (Rec L (U Any (Pairof Any L))))
+                           (Values (Pairof Syntax-E
+                                           (Rec L (U Syntax-E
+                                                     (Pairof Syntax-E L))))
+                                   (U 'unmodified 'modified)))
+                        (→ Any
+                           (Values ISyntax
+                                   (U 'unmodified 'modified)))))
 #;(: handle-pair (case→ (→ (Pairof Any (Listof Any))
-                         (Values (Listof Syntax-E)
-                                 (U 'unmodified 'modified)))
-                      (→ (Pairof Any (Rec L (U Any (Pairof Any L))))
-                         (Values (Pairof Syntax-E
-                                         (Rec L (U Syntax-E
-                                                   (Pairof Syntax-E L))))
-                                 (U 'unmodified 'modified)))))
+                           (Values (Listof Syntax-E)
+                                   (U 'unmodified 'modified)))
+                        (→ (Pairof Any (Rec L (U Any (Pairof Any L))))
+                           (Values (Pairof Syntax-E
+                                           (Rec L (U Syntax-E
+                                                     (Pairof Syntax-E L))))
+                                   (U 'unmodified 'modified)))))
 (: handle-pair (∀ (A B) (→ (U (Pairof Any (Listof Any))
                               (Pairof Any (Rec L (U Any (Pairof Any L)))))
-                           (→ Any (Values A (U 'modified 'unmodified #;#f)))
-                           (→ Any (Values B (U 'modified 'unmodified #;#f)))
-                           (Values (Pairof (ISyntaxOf A B)
+                           (→ Any (Result A))
+                           (→ Any (Result B))
+                           (Result (Pairof (ISyntaxOf A B)
                                            (Rec L (U (ISyntaxOf A B)
                                                      Null
                                                      (Pairof (ISyntaxOf A B)
-                                                             L))))
-                                   (U 'unmodified 'modified)))))
+                                                             L))))))))
 (define (handle-pair e nstx nsexp)
-  (let-values ([(car* status-car)
-                 (any->isyntax (car e) nstx nsexp)])
-    (cond
-      [(pair? (cdr e))
-       (let-values ([(cdr* status-cdr)
-                     (handle-pair (cdr e) nstx nsexp)])
-         (cond
-           #;[(and (eq? status-car 'unmodified)
-                   (eq? status-cdr 'unmodified))
-              (values (unsafe-cast e (Pairof ISyntax
-                                             (Rec L (U ISyntax
-                                                       Null
-                                                       (Pairof ISyntax L)))))
-                      'unmodified)]
-           #;[(or (eq? status-car #f)
-                  (eq? status-cdr #f))
-              (values #f #f)]
-           [else
-            (values (cons car* cdr*) 'modified)]))]
-      [(null? (cdr e))
+  (define car*+status (any->isyntax (car e) nstx nsexp))
+  (define car* (car car*+status))
+  (define status-car (cdr car*+status))
+  (cond
+    [(pair? (cdr e))
+     (match-let ([(cons cdr* status-cdr)
+                  (handle-pair (cdr e) nstx nsexp)])
        (cond
-         #;[(eq? status-car 'unmodified)
-            (values (unsafe-cast e (Pairof ISyntax Null)) 'unmodified)]
-         #;[(eq? status-car #f)
-            (values #f #f)]
+         #;[(and (eq? status-car 'unmodified)
+                 (eq? status-cdr 'unmodified))
+            (cons (unsafe-cast e (Pairof ISyntax
+                                         (Rec L (U ISyntax
+                                                   Null
+                                                   (Pairof ISyntax L)))))
+                  'unmodified)]
+         [(or (eq? status-car #f)
+              (eq? status-cdr #f))
+          Result#f]
          [else
-          (values (cons car* (cdr e)) 'modified)])]
-      [else
-       (let-values ([(cdr* status-cdr)
-                     (any->isyntax (cdr e) nstx nsexp)])
-         (cond
-           #;[(and (eq? status-car 'unmodified)
-                   (eq? status-cdr 'unmodified))
-              (values (unsafe-cast e (Pairof ISyntax
-                                             (Rec L (U ISyntax
-                                                       Null
-                                                       (Pairof ISyntax L)))))
-                      'unmodified)]
-           #;[(or (eq? status-car #f)
-                  (eq? status-cdr #f))
-              (values #f #f)]
-           [else
-            (values (cons car* cdr*) 'modified)]))])
-    #;[(null? e)
-     (values e 'unmodified)]
-    #;[else
-     (any->isyntax e)]))
-
-#;(let*-values ([(car* status-car)
-                 (any->isyntax (car e))]
-                [(cdr* status-cdr)
-                 (any->isyntax (cdr e))])
-    (cond
-      #;[(and (eq? status-car 'unmodified)
-              (eq? status-cdr 'unmodified))
-         (values (unsafe-cast e (ISyntax-E A)) 'unmodified)]
-      #;[(or (eq? status-car #f)
-             (eq? status-cdr #f))
-         (values #f #f)]
-      [else
-       (values (cons car* cdr*) 'modified)]))
+          (cons (cons car* cdr*) 'modified)]))]
+    [(null? (cdr e))
+     (cond
+       #;[(eq? status-car 'unmodified)
+          (cons (unsafe-cast e (Pairof ISyntax Null)) 'unmodified)]
+       [(eq? status-car #f)
+        Result#f]
+       [else
+        (cons (ann (cons car* (cdr e))
+                   (Pairof (ISyntaxOf A B)
+                           (Rec L (U (ISyntaxOf A B)
+                                     Null
+                                     (Pairof (ISyntaxOf A B)
+                                             L)))))
+              'modified)])]
+    [else
+     (match-let ([(cons cdr* status-cdr) (any->isyntax (cdr e) nstx nsexp)])
+       (cond
+         #;[(and (eq? status-car 'unmodified)
+                 (eq? status-cdr 'unmodified))
+            (cons (unsafe-cast e (Pairof ISyntax
+                                         (Rec L (U ISyntax
+                                                   Null
+                                                   (Pairof ISyntax L)))))
+                  'unmodified)]
+         [(or (eq? status-car #f)
+              (eq? status-cdr #f))
+          Result#f]
+         [else
+          (cons (cons car* cdr*) 'modified)]))]))
 
 (: any->isyntax-e (∀ (A B) (→ Any
-                              (→ Any (Values A (U 'modified 'unmodified #;#f)))
-                              (→ Any (Values B (U 'modified 'unmodified #;#f)))
-                              (Values (ISyntaxOf-E A B)
-                                      (U 'modified 'unmodified #;#f)))))
+                              (→ Any (Result A))
+                              (→ Any (Result B))
+                              (Result (ISyntaxOf-E A B)))))
 (define (any->isyntax-e e nstx nsexp)
   (cond
-    [(boolean? e) (values e 'unmodified)]
-    [(char? e)    (values e 'unmodified)]
-    [(number? e)  (values e 'unmodified)]
-    [(keyword? e) (values e 'unmodified)]
-    [(null? e)    (values e 'unmodified)]
+    [(boolean? e) (cons e 'unmodified)]
+    [(char? e)    (cons e 'unmodified)]
+    [(number? e)  (cons e 'unmodified)]
+    [(keyword? e) (cons e 'unmodified)]
+    [(null? e)    (cons e 'unmodified)]
     [(string? e)  (if (immutable? e)
-                      (values e 'unmodified)
-                      (values (string->immutable-string e) 'modified))]
-    [(symbol? e)  (values e 'unmodified)]
-    [(box? e)     (let-values ([(u* status) (any->isyntax (unbox e) nstx nsexp)])
+                      (cons e 'unmodified)
+                      (cons (string->immutable-string e) 'modified))]
+    [(symbol? e)  (cons e 'unmodified)]
+    [(box? e)     (match-let ([(cons u* status) (any->isyntax (unbox e) nstx nsexp)])
                     (case status
                       [(unmodified)
                        ;(if (immutable? e)
                        ;(values (unsafe-cast e (Sexpof A)) 'unmodified)
-                       (values (box-immutable u*) 'modified);)
+                       (cons (box-immutable u*) 'modified);)
                        ]
                       [(modified)
-                       (values (box-immutable u*) 'modified)]
-                      #;[(#f)
-                         (values #f #f)]))]
+                       (cons (box-immutable u*) 'modified)]
+                      [(#f)
+                       Result#f]))]
     [(pair? e)    (handle-pair e nstx nsexp)]
     [(vector? e)  (match-let ([(cons vs* status)
                                (listof-any->listof-isyntax (vector->list e) nstx nsexp)])
                     (case status
                       [(unmodified)
                        (if (immutable? e)
-                           (values (unsafe-cast e (ISyntaxOf-E A B))
-                                   'unmodified)
-                           (values (apply vector-immutable vs*)
-                                   'modified))]
+                           (cons (unsafe-cast e (ISyntaxOf-E A B))
+                                 'unmodified)
+                           (cons (apply vector-immutable vs*)
+                                 'modified))]
                       [(modified)
-                       (values (apply vector-immutable vs*) 'modified)]
-                      #;[(#f)
-                         (values #f #f)]))]
+                       (cons (apply vector-immutable vs*) 'modified)]
+                      [(#f)
+                       Result#f]))]
     [else
      (nsexp e)]))
