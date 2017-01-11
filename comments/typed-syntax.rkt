@@ -4,10 +4,12 @@
          try-any->isexp
          any->isexp+non-sexp
          CoreSexp
+         ISyntax
+         ISyntax-E
          ISyntaxOf
          ISyntaxOf-E
-         ISyntax/Not
-         ISyntax/Not-E
+         ISyntax/Non
+         ISyntax/Non-E
          NonSyntaxOf
          NonSexpOf
          any->isyntax ;; TODO: make wrappers for these, which discard the second value
