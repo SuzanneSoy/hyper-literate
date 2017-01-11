@@ -6,8 +6,8 @@
          CoreSexp
          ISyntaxOf
          ISyntaxOf-E
-         ISyntax
-         ISyntax-E
+         ISyntax/Not
+         ISyntax/Not-E
          NonSyntaxOf
          NonSexpOf
          any->isyntax ;; TODO: make wrappers for these, which discard the second value

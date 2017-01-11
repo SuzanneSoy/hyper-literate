@@ -12,14 +12,14 @@
 (define-type First-Comments
   (Rec R (Pairof (U #f (Pairof (Syntaxof 'saved-props+srcloc)
                                R))
-                 (Listof (Syntaxof Any)))))
+                 (Listof ISyntax))))
 
 (define-type Comments-After
-  (Listof (Syntaxof Any)))
+  (Listof ISyntax))
 
-(: with-first-comments (∀ (A) (→ (Syntaxof A)
+(: with-first-comments (∀ (A) (→ ISyntax
                                  (U #f First-Comments)
-                                 (Syntaxof A))))
+                                 ISyntax)))
 (define (with-first-comments e c)
     
   (if (or (not c) (and (= (length c) 1) (not (first c))))
