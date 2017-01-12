@@ -9,7 +9,9 @@
                "typed-racket-more"
                "typed-racket-doc"
                "scribble-enhanced"
-               "sexp-diff"))
+               "sexp-diff"
+               "tr-immutable"
+               "typed-map"))
 (define build-deps '("scribble-lib"
                      "racket-doc"
                      "rackunit-doc"

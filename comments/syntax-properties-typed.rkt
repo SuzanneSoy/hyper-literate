@@ -7,8 +7,7 @@
          extract-first-comments
          extract-comments-after)
 
-(require "typed-syntax.rkt"
-         "typed-pairof-predicate.rkt"
+(require tr-immutable/typed-syntax
          typed-map)
 
 (define-type First-Comments

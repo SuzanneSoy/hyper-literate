@@ -1,19 +1,19 @@
 #lang typed/racket
 
 (require typed-map
-         "../../comments/typed-syntax.rkt")
+         tr-immutable/typed-syntax)
 
 (provide annotate-syntax)
 
 (: annotate-syntax (->* (Syntax)
                         (#:srcloc+scopes? Boolean)
-                        Sexp))
+                        Sexp/Non))
 (define (annotate-syntax e #:srcloc+scopes? [srcloc+scopes? #f])
   (annotate-syntax1 e srcloc+scopes?))
 
 (: annotate-syntax1 (→ (U Syntax Syntax-E)
                        Boolean
-                       Sexp))
+                       Sexp/Non))
 (define (annotate-syntax1 e srcloc+scopes?)
   (cond
     [(syntax? e)
@@ -24,17 +24,17 @@
                                        (eq? kᵢ 'comments-after))
                                    (not (syntax-property e kᵢ)))
                               (list)
-                              (list kᵢ (any->isexp (syntax-property e kᵢ)))))
+                              (list kᵢ (any->isexp/non (syntax-property e kᵢ)))))
                         (syntax-property-symbol-keys e)))
       (if srcloc+scopes?
-          (list (any->isexp (syntax-source e))
-                (any->isexp (syntax-line e))
-                (any->isexp (syntax-column e))
-                (any->isexp (syntax-position e))
-                (any->isexp (syntax-span e))
-                (any->isexp (syntax-source-module e))
-                (any->isexp (hash-ref (syntax-debug-info e)
-                                      'context)))
+          (list (any->isexp/non (syntax-source e))
+                (any->isexp/non (syntax-line e))
+                (any->isexp/non (syntax-column e))
+                (any->isexp/non (syntax-position e))
+                (any->isexp/non (syntax-span e))
+                (any->isexp/non (syntax-source-module e))
+                (any->isexp/non (hash-ref (syntax-debug-info e)
+                                          'context)))
           (list))
       (list (annotate-syntax1 (syntax-e e) srcloc+scopes?)))]
     [(null? e)
