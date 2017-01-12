@@ -42,7 +42,7 @@ before_install:
 - export PATH="${RACKET_DIR}/bin:${PATH}" #install-racket.sh can't set for us
 
 install:
- - raco pkg install --deps search-auto
+ - raco pkg install -j 2 --deps search-auto
 
 before_script:
 
