@@ -5,13 +5,13 @@
 
 (provide annotate-syntax)
 
-(: annotate-syntax (->* (Syntax)
+(: annotate-syntax (->* (ISyntax/Non)
                         (#:srcloc+scopes? Boolean)
                         Sexp/Non))
 (define (annotate-syntax e #:srcloc+scopes? [srcloc+scopes? #f])
   (annotate-syntax1 e srcloc+scopes?))
 
-(: annotate-syntax1 (→ (U Syntax Syntax-E)
+(: annotate-syntax1 (→ (U ISyntax/Non ISyntax/Non-E)
                        Boolean
                        Sexp/Non))
 (define (annotate-syntax1 e srcloc+scopes?)
@@ -52,14 +52,18 @@
            (immutable? e)
            (map (λ (eᵢ) (annotate-syntax1 eᵢ srcloc+scopes?))
                 (vector->list e)))]
-    [(symbol? e)
+    [(box? e)
+     (list 'box
+           (immutable? e)
+           (annotate-syntax1 (unbox e) srcloc+scopes?))]
+    [(or (symbol? e)
+         (string? e)
+         (boolean? e)
+         (char? e)
+         (number? e)
+         (keyword? e))
      e]
-    [(string? e)
-     e]
-    [else
-     (raise-argument-error
-      'annotate-syntax
-      (string-append "a syntax object containing recursively on of the"
-                     " following: pair, null, vector, symbol, string")
-      0
-      e)]))
+    [(NonSyntax? e)
+     (list 'NonSyntax (NonSexp (NonSyntax-v e)))]
+    [(NonSexp? e)
+     (list 'NonSexp e)]))
