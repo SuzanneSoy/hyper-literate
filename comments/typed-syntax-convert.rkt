@@ -1,12 +1,12 @@
 #lang typed/racket
 
 (require typed-map
-         typed/racket/unsafe)
+         typed/racket/unsafe
+         "typed-prefab-declarations.rkt")
 
 (provide try-any->isexp*
          try-any->isexp
-         any->isexp+non-sexp
-         (struct-out NonSexp))
+         any->isexp+non-sexp)
 
 (unsafe-require/typed racket/function
                       [[identity unsafe-cast-function] (∀ (A) (→ Any A))])
@@ -102,10 +102,6 @@
      (non-sexp e)]))
 
 
-;; Sexp:  
-
-(struct (A) NonSexp ([value : A]) #:type-name NonSexpOf)
-
 (: any->isexp+non-sexp (→ Any (Sexpof (NonSexpOf Any))))
 (define (any->isexp+non-sexp e)
   (let*-values ([(e* status) (try-any->isexp*
@@ -122,13 +118,13 @@
                        " not return #f."))])))
 
 
-(: try-any->isexp (→ Any (U (List Any) #f)))
+(: try-any->isexp (→ Any (Maybe Sexp)))
 (define (try-any->isexp e)
   (let*-values ([(e* status) (try-any->isexp*
                               e
                               (λ (non-sexp-e)
                                 (values #f #f)))])
     (case status
-      [(unmodified) (list e)]
-      [(modified) (list e*)]
+      [(unmodified) (Some (unsafe-cast e Sexp))]
+      [(modified) (Some e*)]
       [(#f) #f])))

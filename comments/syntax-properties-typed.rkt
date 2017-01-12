@@ -7,7 +7,9 @@
          extract-first-comments
          extract-comments-after)
 
-(require "typed-syntax.rkt")
+(require "typed-syntax.rkt"
+         "typed-pairof-predicate.rkt"
+         typed-map)
 
 (define-type First-Comments
   (Rec R (Pairof (U #f (Pairof (Syntaxof 'saved-props+srcloc)
@@ -16,6 +18,37 @@
 
 (define-type Comments-After
   (Listof ISyntax))
+
+(: first-comments? (→ Any Boolean : (Pairof (U #f (Pairof (Syntaxof 'saved-props+srcloc)
+                                                          First-Comments))
+                                            (Listof ISyntax))))
+(define (first-comments? v)
+  (define p? (inst pairof?
+                   (U #f (Pairof (Syntaxof 'saved-props+srcloc)
+                                 First-Comments))
+                   (Listof ISyntax)))
+  (p? v first-comments1? first-comments2?))
+
+(: first-comments1? (→ Any Boolean : (U #f (Pairof (Syntaxof 'saved-props+srcloc)
+                                                   First-Comments))))
+(define (first-comments1? v)
+  (or (false? v)
+      (first-comments11? v)))
+
+(: first-comments11? (→ Any Boolean : (Pairof (Syntaxof 'saved-props+srcloc)
+                                              First-Comments)))
+(define (first-comments11? v)
+  (define p? (inst pairof?
+                   (Syntaxof 'saved-props+srcloc)
+                   First-Comments))
+  (p? v
+      (make-predicate (Syntaxof 'saved-props+srcloc))
+      first-comments?))
+
+(: first-comments2? (→ Any Boolean : (Listof ISyntax)))
+(define (first-comments2? v)
+  (and (list? v)
+       (andmap isyntax? v)))
 
 (: with-first-comments (∀ (A) (→ ISyntax
                                  (U #f First-Comments)
@@ -37,13 +70,13 @@
 (: extract-first-comments (-> (Syntaxof Any) (U #f First-Comments)))
 (define (extract-first-comments stx)
   (define c (syntax-property stx 'first-comments))
-  (if ((make-predicate First-Comments) c)
+  (if (first-comments? c)
       c
       #f))
 
 (: extract-comments-after (-> (Syntaxof Any) (U #f Comments-After)))
 (define (extract-comments-after stx)
   (define c (syntax-property stx 'comments-after))
-  (if ((make-predicate Comments-After) c)
-      c
-      #f))
+  (and (list? c)
+       (andmap isyntax? c)
+       c))

@@ -2,8 +2,8 @@
 
 (require typed-map
          typed/racket/unsafe
-         "typed-syntax-convert.rkt"
-         "maybe.rkt")
+         "typed-prefab-declarations.rkt")
+
 (unsafe-require/typed racket/base
                       [[datum->syntax datum->syntax*]
                        (∀ (A) (→ (Syntaxof Any)
@@ -18,16 +18,14 @@
          ISyntax-E
          ISyntax/Non
          ISyntax/Non-E
-         (struct-out NonSyntax)
-         ;(struct-out NonSexp) ; already exported in typed-syntax-convert.rkt
-         NonSyntaxOf
-         NonSexpOf
-         any->isyntax+non
-         syntax->isyntax+non
-         any->isyntax-e+non
+         any->isyntax/non
+         syntax->isyntax/non
+         any->isyntax/non-e
          try-any->isyntax
          try-syntax->isyntax
-         try-any->isyntax-e)
+         try-any->isyntax-e
+         isyntax?
+         isyntax-e?)
 
 (unsafe-require/typed racket/function
                       [[identity unsafe-cast-function] (∀ (A) (→ Any A))])
@@ -67,9 +65,6 @@
                                        (ISyntaxOf A B)
                                        (Pairof (ISyntaxOf A B) L))))
      (Vectorof (ISyntaxOf A B))))
-
-(struct (A) NonSyntax ([value : A]) #:type-name NonSyntaxOf)
-(struct (A) NonSexp ([value : A]) #:type-name NonSexpOf)
 
 (define-type ISyntax/Non (ISyntaxOf (NonSyntaxOf Any) (NonSexpOf Any)))
 (define-type ISyntax/Non-E (ISyntaxOf-E (NonSyntaxOf Any) (NonSexpOf Any)))
@@ -254,8 +249,8 @@
     [else
      (nsexp e)]))
 
-(: any->isyntax+non (→ Any ISyntax/Non))
-(define (any->isyntax+non e)
+(: any->isyntax/non (→ Any ISyntax/Non))
+(define (any->isyntax/non e)
   (define e*+status
     (any->isyntax* e
                    (λ (n) (cons (NonSyntax n) 'modified))
@@ -264,8 +259,8 @@
       (car e*+status)
       (error "Got #f from any->isyntax* with handlers not returning #f")))
 
-(: syntax->isyntax+non (→ (Syntaxof Any) (Syntaxof ISyntax/Non-E)))
-(define (syntax->isyntax+non stx)
+(: syntax->isyntax/non (→ (Syntaxof Any) (Syntaxof ISyntax/Non-E)))
+(define (syntax->isyntax/non stx)
   (define e*+status
     (syntax->isyntax* stx
                       (λ (n) (cons (NonSyntax n) 'modified))
@@ -274,8 +269,8 @@
       (car e*+status)
       (error "Got #f from any->isyntax* with handlers not returning #f")))
 
-(: any->isyntax-e+non (→ Any ISyntax/Non-E))
-(define (any->isyntax-e+non e)
+(: any->isyntax/non-e (→ Any ISyntax/Non-E))
+(define (any->isyntax/non-e e)
   (define e*+status
     (any->isyntax-e* e
                      (λ (n) (cons (NonSyntax n) 'modified))
@@ -313,3 +308,21 @@
   (if (cdr e*+status)
       (Some (car e*+status))
       #f))
+
+(define isyntax?
+  (unsafe-cast (λ ([e : Any]) : Boolean
+                 (define e*+status
+                   ((inst any->isyntax* Nothing Nothing) e
+                                                         (λ (n) Result#f)
+                                                         (λ (n) Result#f)))
+                 (eq? (cdr e*+status) 'unmodified))
+               (→ Any Boolean : ISyntax)))
+
+(define isyntax-e?
+  (unsafe-cast (λ ([e : Any]) : Boolean
+                 (define e*+status
+                   ((inst any->isyntax-e* Nothing Nothing) e
+                                                           (λ (n) Result#f)
+                                                           (λ (n) Result#f)))
+                 (eq? (cdr e*+status) 'unmodified))
+               (→ Any Boolean : ISyntax-E)))
