@@ -70,8 +70,8 @@
     ;#`(#,(datum->syntax #'body0 'begin) (let ([b-id (void)]) b-use) ... body0 body ...)
     (syntax-property
      (syntax-property #`(#,(datum->syntax #'body0 'begin) body0 body ...)
-                      'disappeared-binding (syntax->list #'(b-id ...)))
-     'disappeared-use (syntax->list #'(b-use ...)))))
+                      'disappeared-binding (syntax->list (syntax-local-introduce #'(b-id ...))))
+     'disappeared-use (syntax->list (syntax-local-introduce #'(b-use ...))))))
 
 (define-for-syntax (strip-comments body)
   (cond
