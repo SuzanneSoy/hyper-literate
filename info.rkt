@@ -11,7 +11,8 @@
                "scribble-enhanced"
                "sexp-diff"
                "tr-immutable"
-               "typed-map-lib"))
+               "typed-map-lib"
+               "debug-scopes"))
 (define build-deps '("scribble-lib"
                      "racket-doc"
                      "rackunit-doc"

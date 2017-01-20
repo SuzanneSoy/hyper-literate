@@ -9,7 +9,8 @@
                      syntax/strip-context
                      syntax/srcloc
                      racket/struct
-                     syntax/srcloc))
+                     syntax/srcloc
+                     debug-scopes/named-scopes/exptime))
 
 (begin-for-syntax
   (define first-id #f)
@@ -151,18 +152,23 @@
 (define-syntax (continue stx)
   (syntax-case stx ()
     [(_self lang-module-begin . body)
-     (let ([expanded (local-expand 
-                      (datum->syntax stx
-                                     `(,#'lang-module-begin . ,#'body)
-                                     stx
-                                     stx)
-                      'module-begin 
-                      (list))])
+     (let ()
+       (define expanded (local-expand 
+                         (datum->syntax stx
+                                        `(,#'lang-module-begin . ,#'body)
+                                        stx
+                                        stx)
+                         'module-begin 
+                         (list)))
+       (define meta-language-nesting
+         ;; Use a module-like scope here, instead of (make-syntax-introducer),
+         ;; otherwise DrRacket stops drawing some arrows (why?).
+         (make-module-like-named-scope 'meta-language-nesting))
        (syntax-case expanded (#%plain-module-begin)
          [(#%plain-module-begin . expanded-body)
           #`(begin 
               . 
-              #,((make-syntax-introducer) #'expanded-body))]))]))
+              #,(meta-language-nesting #'expanded-body))]))]))
 
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-parse stx
