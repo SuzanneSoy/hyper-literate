@@ -1,6 +1,10 @@
 ;; Copied and modified from https://github.com/racket/scribble/blob/
 ;;    31ad440b75b189a2b0838aab011544d44d6b580/
 ;;    scribble-lib/scribble/comment-reader.rkt
+;;
+;; Maybe this should use instead the 'scribble property? See
+;; https://docs.racket-lang.org/scribble/
+;;   reader-internals.html#%28part._.Syntax_.Properties%29
 (module comment-reader scheme/base
   (require (only-in racket/port peeking-input-port))
 
