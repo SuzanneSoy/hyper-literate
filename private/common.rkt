@@ -151,11 +151,12 @@
 ;; module meta-languages.
 (define-syntax (continue stx)
   (syntax-case stx ()
-    [(_self lang-module-begin . body)
+    [(_self lang-module-begin maybe-chain₊ . body)
      (let ()
+       (define ch₊ (syntax->list #'maybe-chain₊))
        (define expanded (local-expand 
                          (datum->syntax stx
-                                        `(,#'lang-module-begin . ,#'body)
+                                        `(,#'lang-module-begin ,@ch₊ . ,#'body)
                                         stx
                                         stx)
                          'module-begin 
@@ -173,8 +174,15 @@
 (define-for-syntax ((make-module-begin submod?) stx)
   (syntax-parse stx
     ;; #:no-require-lang is ignored, but still allowed for compatibility.
-    [(_modbeg (lang:id (~optional (~and no-require-lang #:no-require-lang))
-                       (~optional (~and no-auto-require #:no-auto-require)))
+    ;; TODO: semantically, the no-require-lang and no-auto-require should be
+    ;; before the lang, as they are arguments to hyper-literate itself.
+    [(_modbeg {~or (lang:id
+                    {~optional (~and no-require-lang #:no-require-lang)}
+                    {~optional (~and no-auto-require #:no-auto-require)})
+                   (({~optional (~and no-require-lang #:no-require-lang)}
+                     {~optional (~and no-auto-require #:no-auto-require)}
+                     lang:id
+                     . chain₊))}
               body0 . body)
      (let ()
        (define lang-sym (syntax-e #'lang))
@@ -248,7 +256,11 @@
                                 (begn body0 . body)))))
                         '())
                  (require lang)
-                 (continue lang-modbeg tngl)) ;; TODO: put . tngl and remove the (begin _)
+                 (continue lang-modbeg
+                           #,(if (attribute chain₊)
+                                 #'(chain₊)
+                                 #'())
+                           tngl)) ;; TODO: put . tngl and remove the (begin _)
               )])))]))
 
 (define-syntax module-begin/plain (make-module-begin #f))
