@@ -10,7 +10,8 @@
          "../comments/hide-comments.rkt")
 
 (provide meta-read-inside
-         meta-read-syntax-inside)
+         meta-read-syntax-inside
+         get-command-char)
 
 (define (make-at-reader+comments #:syntax? [syntax? #t]
                                  #:inside? [inside? #f]
@@ -26,7 +27,7 @@
                         #:unsyntax #f))))
 
 (define (get-command-char rd1)
-  (define rd1-datum (if (syntax? rd1) (syntax->datum rd1) rd1))
+  (define rd1-datum (syntax->datum (datum->syntax #f rd1)))
   (if (and (pair? rd1-datum)
            (keyword? (car rd1-datum))
            (= 1 (string-length (keyword->string (car rd1-datum)))))

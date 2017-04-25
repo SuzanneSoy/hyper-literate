@@ -12,7 +12,8 @@
                "sexp-diff"
                "tr-immutable"
                "typed-map-lib"
-               "debug-scopes"))
+               "debug-scopes"
+               "syntax-color-lib"))
 (define build-deps '("scribble-lib"
                      "racket-doc"
                      "rackunit-doc"

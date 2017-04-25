@@ -3,7 +3,9 @@
 (require racket/port)
 
 (provide read-whole-first-line
-         read-syntax-whole-first-line)
+         read-syntax-whole-first-line
+         narrow-to-one-line
+         read-line-length)
 
 (define (read-line-length port)
   (let* ([peeking (peeking-input-port port)]
