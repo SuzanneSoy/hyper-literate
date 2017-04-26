@@ -179,9 +179,9 @@
     [(_modbeg {~or (lang:id
                     {~optional (~and no-require-lang #:no-require-lang)}
                     {~optional (~and no-auto-require #:no-auto-require)})
-                   (({~optional (~and no-require-lang #:no-require-lang)}
-                     {~optional (~and no-auto-require #:no-auto-require)}
-                     lang:id
+                   ({~optional (~and no-require-lang #:no-require-lang)}
+                    {~optional (~and no-auto-require #:no-auto-require)}
+                    (lang:id
                      . chain₊))}
               body0 . body)
      (let ()
