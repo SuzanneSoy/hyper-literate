@@ -38,14 +38,23 @@ hyper-literate/lang
     (make-scribble-inside-lexer #:command-char (or command-char #\@)))
   
   (define (read/options in offset x-mode)
-    (define-values (line column position) (port-next-location in))
-    (define-values (mode2 command-char)
+    (define-values (mode2 command-char depth)
       (apply values x-mode))
 
-    (define-values (txt type paren start end) (racket-lexer in))
+    (define-values (txt type paren start end status) (racket-lexer/status in))
+    (define new-depth (case status
+                        [(open) (add1 depth)]
+                        [(close) (sub1 depth)]
+                        [else depth]))
     ;; TODO: limit the number of newlines to a single newline.
-    (if (and (eq? type 'white-space)
-             (regexp-match #px"\n" txt))
+    (if (or
+         ;; Fallback to scribble mode fast if we get a close-paren too many.
+         ;; This could be because the text starts right after the last "config"
+         ;; expression (which would start on the first line, then continue).
+         (< new-depth 0)
+         (and (= new-depth 0)
+              (and (eq? type 'white-space)
+                   (regexp-match #px"\n" txt))))
         (values txt type paren start end
                 0 (list 'main (make-lexr command-char) command-char #f))
         (let ()
@@ -61,16 +70,15 @@ hyper-literate/lang
                               #\@))
                         #\@))))
           (values txt type paren start end
-                  0 (list 'options new-command-char)))))
+                  0 (list 'options new-command-char new-depth)))))
   
   (lambda (key defval default)
     (case key
       [(color-lexer)
        (λ (in offset x-mode)
-         (define-values (line column position) (port-next-location in))
          (cond
            [(eq? x-mode #f)
-            (read/options in offset (list 'options #f))]
+            (read/options in offset (list 'options #f 0))]
            [(eq? (car x-mode) 'options)
             (read/options in offset x-mode)]
            [else

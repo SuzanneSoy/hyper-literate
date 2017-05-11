@@ -128,6 +128,9 @@
        ;; TODO: hash tables
        [else e]))
 
+(define-for-syntax (prettify-chunk-name str)
+  (regexp-replace #px"^<(.*)>$" str "«\\1»"))
+
 (define-for-syntax ((make-chunk-display racketblock unsyntax-id) stx)
   (syntax-parse stx
     ;; no need for more error checking, using chunk for the code will do that
@@ -145,6 +148,7 @@
      (define n-repeat (get+increment-repeat-chunk-number!
                        original-name:n))
      (define str (symbol->string (syntax-e #'name)))
+     (define str-display (prettify-chunk-name str))
      (define/with-syntax tag (format "chunk:~a:~a:~a" str n n-repeat))
      (define/with-syntax (rest ...)
        ;; if the would-be-next number for this chunk name is "2", then there is
@@ -178,11 +182,12 @@
                 (list (elemtag '(prefixable tag)
                                (bold (italic (elemref '(prefixable tag)
                                                       #:underline? #f
-                                                      #,str rest ...))
+                                                      #,str-display rest ...))
                                      " ::=")))
                 (list (smaller
                        (make-link-element "plainlink"
-                                          (decode-content (list #,str rest ...))
+                                          (decode-content
+                                           (list #,str-display rest ...))
                                           `(elem (prefixable
                                                   ,@(chunks-toc-prefix)
                                                   tag))))))
@@ -274,8 +279,8 @@
     [(_ id)
      (identifier? #'id)
      (with-syntax ([tag (format "chunk:~a:1:1" (syntax-e #'id))]
-                   [str (format "~a" (syntax-e #'id))])
-       #'(elemref '(prefixable tag) #:underline? #f str))]))
+                   [pretty (prettify-chunk-name (format "~a" (syntax-e #'id)))])
+       #'(elemref '(prefixable tag) #:underline? #f pretty))]))
 
 
 (provide (all-from-out scheme/base
