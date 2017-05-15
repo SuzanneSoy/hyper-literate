@@ -39,31 +39,6 @@
    #:style (style "dim"
                   (list (css-addition the-css-addition)))))
 
-(define-for-syntax (show-stx e)
-  (define (r e)
-    (cond
-      ([syntax? e]
-       (display "#'")
-       (r (syntax-e e)))
-      [(pair? e)
-       (display "(")
-       (let loop ([e e])
-         (if (pair? e)
-             (begin (r (car e))
-                    (display " ")
-                    (loop (cdr e)))
-             (if (null? e)
-                 (display ")")
-                 (begin
-                   (display ". ")
-                   (r e)
-                   (display ")")))))]
-      [else
-       (print (syntax->datum (datum->syntax #f e)))]))
-  (r e)
-  (newline)
-  (newline))
-
 (define-syntax (hlite stx)
   (syntax-case stx ()
     [(self name guide1 . body)
@@ -203,6 +178,10 @@
                               (update-source-location body #:span 0)))]
              ['()
               body])))
+       (define (stx-null? e)
+         (or (null? e)
+             (and (syntax? e)
+                  (null? (syntax-e e)))))
        (define new-executable-code
          (let loop ([mode '=]
                     [guide simplified-guide]
@@ -211,52 +190,86 @@
              [(cons (and new-mode (or '/ '= '- '+)) rest-guide)
               (loop new-mode rest-guide body)]
              [(cons car-guide rest-guide)
+              (define (do-append-last-acc last-acc acc)
+                ;; When nothing is later added to acc, we can
+                ;; simply put r as the last element of the
+                ;; reversed acc. This allows r to be an
+                ;; improper list.
+                ;; do-append-last-acc is called when elements follow
+                ;; the current value of last-acc.
+                (unless (syntax->list (datum->syntax #f last-acc))
+                  (raise-syntax-error
+                   'hlite
+                   (format
+                    (string-append
+                     "the removal of elements caused a list with a"
+                     "dotted tail to be spliced in a non-final position: ~a")
+                    (syntax->datum (datum->syntax #f last-acc)))
+                   stx))
+                (append (reverse (syntax->list (datum->syntax #f last-acc)))
+                        acc))
               (define loop2-result
                 (let loop2 ([first-iteration? #t]
                             [guide guide]
                             [body (if (syntax? body) (syntax-e body) body)]
-                            [acc '()])
+                            [acc '()]
+                            [last-acc '()])
                   (cond
                     [(and (pair? guide)
                           (memq (car guide) '(/ = - +)))
-                     (if first-iteration?
+                     (if (or first-iteration?
+                             (eq? (car guide) mode))
                          (loop (car guide) (cdr guide) body)
-                         ;; produce:
-                         ;; (accumulated ... . rest)
-                         (let ([r-acc (reverse acc)])
-                           (append
-                            r-acc
-                            (loop (car guide) (cdr guide) body))))]
+                         (let ([r (loop (car guide) (cdr guide) body)])
+                           (if (stx-null? r)
+                               ;; produce: (accumulated ... . last-acc)
+                               (append (reverse acc) last-acc)
+                               ;; produce: (accumulated ... last-acc ... . rest)
+                               (let ([r-acc (reverse (do-append-last-acc
+                                                      last-acc
+                                                      acc))])
+                                 (append r-acc r)))))]
                     [(and (pair? guide) (pair? body))
                      ;; accumulate the first element of body, if mode is not '-
                      ;; which means that the element should be removed.
-                     (loop2 #f
-                            (cdr guide)
-                            (cdr body)
-                            (cond
-                              [(and (eq? mode '-)
-                                    (or (pair? (car body))
-                                        (and (syntax (car body))
-                                             (pair? (syntax-e (car body))))))
-                               (let ([r (loop mode (car guide) (car body))])
-                                 (append (if (syntax? r) (syntax->list r) r)
-                                         acc))]
-                              [(eq? mode '-)
-                               acc]
-                              [else
-                               (cons (loop mode (car guide) (car body)) acc)]))]
+                     (cond
+                       [(and (eq? mode '-)
+                             (or (pair? (car body))
+                                 (and (syntax? (car body))
+                                      (pair? (syntax-e (car body))))))
+                        (let ([r (loop mode (car guide) (car body))])
+                          (loop2 #f
+                                 (cdr guide)
+                                 (cdr body)
+                                 (do-append-last-acc last-acc acc)
+                                 r))]
+                       [(eq? mode '-)
+                        (loop2 #f
+                               (cdr guide)
+                               (cdr body)
+                               acc
+                               last-acc)]
+                       [else
+                        (loop2 #f
+                               (cdr guide)
+                               (cdr body)
+                               (do-append-last-acc last-acc acc)
+                               (list (loop mode (car guide) (car body))))])]
                     ;; If body is not a pair, then we will treat it as an
                     ;; "improper tail" element, unless it is null?
                     [(null? body)
                      ;; produce:
                      ;; ((accumulated ...))
-                     (let* ([r-acc (reverse acc)])
+                     (let* ([r-acc (append (reverse acc) last-acc)])
                        r-acc)]
                     [else
                      ;; produce:
                      ;; (accumulated ... . improper-tail)
                      (let* ([new-body (loop mode guide body)]
-                            [r-acc+tail (append (reverse acc) new-body)])
+                            [r-acc+tail (append
+                                         (reverse
+                                          (do-append-last-acc last-acc acc))
+                                         new-body)])
                        r-acc+tail)])))
               (if (syntax? body)
                   (datum->syntax body loop2-result body body)
@@ -266,7 +279,6 @@
              ['()
               body])))
        ;(show-stx #'body)
-       (displayln new-body)
        #`(begin
            #,(datum->syntax
               stx
@@ -275,6 +287,6 @@
                 ,#'name
                 . ,(syntax-e new-body))
               stx)
-           (chunk #:save-as dommy name
+           (chunk #:save-as dummy name
                   . #,new-executable-code)))]))
 
