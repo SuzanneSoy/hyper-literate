@@ -233,9 +233,18 @@
                      (loop2 #f
                             (cdr guide)
                             (cdr body)
-                            (if (eq? mode '-)
-                                acc
-                                (cons (loop mode (car guide) (car body)) acc)))]
+                            (cond
+                              [(and (eq? mode '-)
+                                    (or (pair? (car body))
+                                        (and (syntax (car body))
+                                             (pair? (syntax-e (car body))))))
+                               (let ([r (loop mode (car guide) (car body))])
+                                 (append (if (syntax? r) (syntax->list r) r)
+                                         acc))]
+                              [(eq? mode '-)
+                               acc]
+                              [else
+                               (cons (loop mode (car guide) (car body)) acc)]))]
                     ;; If body is not a pair, then we will treat it as an
                     ;; "improper tail" element, unless it is null?
                     [(null? body)
