@@ -17,7 +17,8 @@
 (define build-deps '("scribble-lib"
                      "racket-doc"
                      "rackunit-doc"
-                     "scribble-doc"))
+                     "scribble-doc"
+                     "rackunit-doc"))
 (define scribblings '(("scribblings/hyper-literate.scrbl" ())
                       ("test/test.hl.rkt" () (omit-start))
                       ("test/test2.hl.rkt" () (omit-start))))

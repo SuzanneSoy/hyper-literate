@@ -268,3 +268,6 @@ present).
  "                      (lib \"pkg/program.hl.rkt\")))\n"
  "@chunk[<*>\n"
  "       'program-code-here]\n"]}]}
+
+@include-section[(submod (lib "hyper-literate/scribblings/diff1-example.hl.rkt")
+                         doc)]

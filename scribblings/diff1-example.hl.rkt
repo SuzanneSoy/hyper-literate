@@ -1,7 +1,68 @@
 #lang hyper-literate #:♦ racket/base
 ♦;(dotlambda/unhygienic . racket/base)
 
-♦title{testttt}
+♦title{Highlighting added, removed and existing parts in literate programs}
+
+♦defmodule[hyper-literate/diff1]
+
+Highly experimental. Contains bugs, API may change in the future.
+
+♦defproc[(init) any/c]{
+                       
+ For now, the ♦racket[init] function must be called somewhere in documents
+ which use ♦racketmodname[hyper-literate/diff1]. It produces helper values
+ which must be inserted in the scribble document. Simply adding this to the
+ document should be enough:
+
+ ♦codeblock|{
+ #lang hyper-literate #:♦ racket/base
+ ♦(init)}|}
+
+♦defform[(hlite name pat . body)]{
+                                  
+ Like ♦racket[chunk], but highlights parts of the ♦racket[body] according to
+ the pattern ♦racket[pat].
+
+ The ♦racket[pat] should cover the whole ♦racket[body], which can contain
+ multiple expressions. The ♦racket[pat] can use the following symbols:
+
+ ♦itemlist[
+ ♦item{♦racket[=] to indicate that the following elements are ``normal'' and
+   should not be highlighted in any special way.}
+ ♦item{♦racket[/] to indicate that the following elements were already
+   existing in previous occurrences of the code (the part is dimmed)}
+ ♦item{♦racket[+] to indicate that the following elements are new (highlighted
+   in green)}
+ ♦item{♦racket[-] to indicate that the following elements are removed
+   (highlighted in red). Removed elements are also removed from the actual
+   executable source code. If a removed element contains one or more normal, new
+   or dimmed elements, these children are spliced in place of the removed
+   element.}
+ ♦item{Other symbols are placeholders for the elements}]
+
+ In the following example, the ♦racket[1] is highlighted as removed (and will
+ not be present in the executable code), the ♦racket[π] is highlighted as
+ added, and the rest of the code is dimmed:
+
+ ♦codeblock|{
+ #lang hyper-literate #:♦ racket/base
+ ♦hlite[<my-code> {/ (def args (_ - _ + _ / . _))}
+        (define (foo v)
+          (+ 1 π . v))]}|
+
+ It produces the result shown below:}
+
+♦require[hyper-literate/diff1]
+♦(init)
+
+♦hlite[<my-code> {/ (def args (_ - _ + _ / . _))}
+       (define (foo v)
+         (+ 1 π . v))]
+
+♦section{Example}
+
+You can look at the source code of this document to see how this example is
+done.
 
 ♦require[hyper-literate/diff1]
 ♦(init)
@@ -69,4 +130,4 @@ The whole program is therefore:
        (check-equal? '(<aaa>) '(2 3 4))
        (check-equal? '(0 <bbb> 1) '(0 x z 1))
        (check-equal? '<ccc> '(0 x . z))
-       (check-equal? '<ddd> '(0 x . z))]
+       (check-equal? '<ddd> '(0 x x . z))]

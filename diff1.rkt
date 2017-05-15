@@ -10,6 +10,7 @@
                      syntax/srcloc)
          scribble/core
          scribble/html-properties
+         scribble/latex-properties
          scribble/base)
 
 ;; For debugging.
@@ -41,30 +42,47 @@
 
 (define the-css-addition
   #"
-.el-hlite-dim {
+.HyperLiterateNormal {
+  filter: initial;
+  background: none;
+}
+
+.HyperLiterateDim {
   filter: brightness(150%) contrast(30%) opacity(0.7);
   background: none; /* rgba(82, 103, 255, 0.36); */
 }
 
-.el-hliteadd{
+.HyperLiterateAdd{
   filter: initial;
   background: rgb(202, 226, 202);
 }
 
-.el-hliterm {
+.HyperLiterateRemove {
   filter: initial;
   background: rgb(225, 182, 182);
-}
-
-.el-hlite-normal {
-  filter: initial;
-  background: none;
 }")
+
+(define the-latex-addition
+  #"
+%\\usepackage{framed}% \begin{snugshade}\end{snugshade}
+\\definecolor{HyperLiterateDimColor}{RGB}{210,210,210}
+\\definecolor{HyperLiterateAddColor}{RGB}{202,226,202}
+\\definecolor{HyperLiterateRemoveColor}{RGB}{225,182,182}
+
+\\def\\HyperLiterateNormal#1{#1}
+\\def\\HyperLiterateDim#1{\\colorbox{HyperLiterateDimColor}{%
+  \\vphantom{\\RktPn{(}\\RktValDef{Xj}}#1}}
+\\def\\HyperLiterateAdd#1{\\colorbox{HyperLiterateAddColor}{%
+  \\vphantom{\\RktPn{(}\\RktValDef{Xj}}#1}}
+\\def\\HyperLiterateRemove#1{\\colorbox{HyperLiterateRemoveColor}{%
+  \\vphantom{\\RktPn{(}\\RktValDef{Xj}}#1}}
+")
 
 (define (init)
   (elem
    #:style (style #f
-                  (list (css-addition the-css-addition)))))
+                  (list (css-addition the-css-addition)
+                        (tex-addition the-latex-addition)))))
 
 (begin-for-syntax
   (define (stx-null? e)
@@ -95,10 +113,10 @@
            [(null? g) '()]))
        (define (mode→style m)
          (case m
-           [(/) "el-hlite-dim"]
-           [(=) "el-hlite-normal"]
-           [(-) "el-hliterm"]
-           [(+) "el-hliteadd"]))
+           [(/) "HyperLiterateDim"]
+           [(=) "HyperLiterateNormal"]
+           [(-) "HyperLiterateRemove"]
+           [(+) "HyperLiterateAdd"]))
        (define simplified-guide (simplify-guide #'guide1))
        (define (syntax-e? v)
          (if (syntax? v) (syntax-e v) v))
