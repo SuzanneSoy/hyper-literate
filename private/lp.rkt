@@ -197,7 +197,8 @@
 (define-for-syntax (make-chunk chunk-code chunk-display)
   (syntax-parser
     ;; no need for more error checking, using chunk for the code will do that
-    [(_ (~optional (~seq #:save-as save-as:id))
+    [(_ {~optional {~seq #:save-as save-as:id}}
+        {~optional {~and #:display-only display-only}}
         {~and name:id original-before-expr}
         expr ...)
      (define n (get-chunk-number (syntax-local-introduce #'name)))
@@ -216,14 +217,18 @@
      (define/with-syntax stx-chunk-display chunk-display)
      
      #`(begin
-         (stx-chunk-code name . #,(if preexpanding?
-                                      #'(expr ...)
-                                      #'(expr ...) #;(strip-source #'(expr ...))))
+         #,@(if (attribute display-only)
+                #'{}
+                #`{(stx-chunk-code name
+                                   . #,(if preexpanding?
+                                           #'(expr ...)
+                                           #'(expr ...)
+                                           #;(strip-source #'(expr ...))))})
          #,@(if n
                 #'()
                 #'((define-syntax name (make-element-id-transformer
                                         (lambda (stx) #'(chunkref name))))
-                   (begin-for-syntax (init-chunk-number #'name))))
+                   (define-syntax dummy (init-chunk-number #'name))))
          #,(if (attribute save-as)
                #`(begin
                    #,#'(define-syntax (do-for-syntax _)

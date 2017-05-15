@@ -56,7 +56,9 @@
                       (list (restore expr (loop subs)))
                       (list (shift expr))))))
           block)))))
-  (with-syntax ([(body0 body ...) (strip-comments body)]
+  (with-syntax ([body (strip-comments body)]
+                ;; Hopefully the scopes are correct enough on the whole body.
+                [body0 (syntax-case body () [(a . _) #'a] [a #'a])]
                 ;; construct arrows manually
                 [((b-use b-id) ...)
                  (append-map (lambda (m)
@@ -69,7 +71,7 @@
     ;; TODO: fix srcloc (already fixed?).
     ;#`(#,(datum->syntax #'body0 'begin) (let ([b-id (void)]) b-use) ... body0 body ...)
     (syntax-property
-     (syntax-property #`(#,(datum->syntax #'body0 'begin) body0 body ...)
+     (syntax-property #`(#,(datum->syntax #'body0 'begin) . body)
                       'disappeared-binding (syntax->list (syntax-local-introduce #'(b-id ...))))
      'disappeared-use (syntax->list (syntax-local-introduce #'(b-use ...))))))
 
@@ -110,7 +112,9 @@
        [(and (pair? ad)
              (eq? (syntax-e (car ad))
                   'code:line))
-        (strip-comments (append (cdr ad) (cdr body)))]
+        (if (null? (cdr body))
+            (strip-comments (cdr ad))
+            (strip-comments (append (cdr ad) (cdr body))))]
        [else (cons (strip-comments a)
                    (strip-comments (cdr body)))])]
     [else body]))
