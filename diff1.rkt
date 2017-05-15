@@ -41,29 +41,29 @@
 
 (define the-css-addition
   #"
-.el-dim {
+.el-hlite-dim {
   filter: brightness(150%) contrast(30%) opacity(0.7);
   background: none; /* rgba(82, 103, 255, 0.36); */
 }
 
 .el-hliteadd{
   filter: initial;
-  background: rgba(108, 175, 108, 0.36);
+  background: rgb(202, 226, 202);
 }
 
 .el-hliterm {
   filter: initial;
-  background: rgba(173, 54, 54, 0.36);
+  background: rgb(225, 182, 182);
 }
 
-.el-undim {
+.el-hlite-normal {
   filter: initial;
   background: none;
 }")
 
 (define (init)
   (elem
-   #:style (style "dim"
+   #:style (style #f
                   (list (css-addition the-css-addition)))))
 
 (begin-for-syntax
@@ -95,8 +95,8 @@
            [(null? g) '()]))
        (define (mode→style m)
          (case m
-           [(/) "el-dim"]
-           [(=) "el-undim"]
+           [(/) "el-hlite-dim"]
+           [(=) "el-hlite-normal"]
            [(-) "el-hliterm"]
            [(+) "el-hliteadd"]))
        (define simplified-guide (simplify-guide #'guide1))
