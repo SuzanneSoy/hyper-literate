@@ -12,6 +12,33 @@
          scribble/html-properties
          scribble/base)
 
+;; For debugging.
+(define-for-syntax (show-stx e)
+  (define (r e)
+    (cond
+      ([syntax? e]
+       (display "#'")
+       (r (syntax-e e)))
+      [(pair? e)
+       (display "(")
+       (let loop ([e e])
+         (if (pair? e)
+             (begin (r (car e))
+                    (display " ")
+                    (loop (cdr e)))
+             (if (null? e)
+                 (display ")")
+                 (begin
+                   (display ". ")
+                   (r e)
+                   (display ")")))))]
+      [else
+       (print (syntax->datum (datum->syntax #f e)))]))
+  (r e)
+  (newline)
+  (newline))
+
+
 (define the-css-addition
   #"
 .el-dim {
@@ -38,6 +65,16 @@
   (elem
    #:style (style "dim"
                   (list (css-addition the-css-addition)))))
+
+(begin-for-syntax
+  (define (stx-null? e)
+    (or (null? e)
+        (and (syntax? e)
+             (null? (syntax-e e)))))
+  (define (stx-pair? e)
+    (or (pair? e)
+        (and (syntax? e)
+             (pair? (syntax-e e))))))
 
 (define-syntax (hlite stx)
   (syntax-case stx ()
@@ -118,15 +155,44 @@
                          (loop (car guide) (cdr guide) body)
                          ;; produce:
                          ;; ({code:hilite {code:line accumulated ...}} . rest)
-                         (let ([r-acc (reverse acc)])
-                           (cons
-                            (datum->syntax (car r-acc)
-                                           `(code:hilite (code:line . ,r-acc)
-                                                         ,(mode→style mode))
-                                           (build-source-location-list
-                                            (update-source-location (car r-acc)
-                                                                    #:span 0)))
-                            (loop (car guide) (cdr guide) body))))]
+                         (let ([r-acc (reverse acc)]
+                               [after (loop (car guide) (cdr guide) body)])
+                           (define (do after)
+                             (datum->syntax
+                              (car r-acc)
+                              `(code:hilite (code:line ,@r-acc . ,after)
+                                            ,(mode→style mode))
+                              (build-source-location-list
+                               (update-source-location (car r-acc)
+                                                       #:span 0))))
+                           (if (stx-pair? body)
+                               ;; TODO: refactor the two branches, they are very
+                               ;; similar.
+                               (cons (do '())
+                                     after)
+                               ;; Special case to handle (a . b) when b and a
+                               ;; do not have the same highlighting.
+                               ;; This assigns to the dot the highlighting for
+                               ;; b, although it would be possible to assign
+                               ;; andother highliughting (just change the
+                               ;; mode→style below)
+                               (let* ([loc1 (build-source-location-list
+                                             (update-source-location
+                                              (car acc)
+                                              #:span 0))]
+                                      [loc2 (build-source-location-list
+                                             (update-source-location
+                                              after
+                                              #:column (- (syntax-column after)
+                                                          3) ;; spc + dot + spc
+                                              #:span 0))])
+                                 `(,(do `(,(datum->syntax
+                                            #f
+                                            `(code:hilite
+                                              ,(datum->syntax
+                                                #f `(code:line . ,after) loc2)
+                                              ,(mode→style (car guide)))
+                                            loc1))))))))]
                     [(and (pair? guide) (pair? body))
                      ;; accumulate the first element of body
                      (loop2 #f
@@ -178,10 +244,6 @@
                               (update-source-location body #:span 0)))]
              ['()
               body])))
-       (define (stx-null? e)
-         (or (null? e)
-             (and (syntax? e)
-                  (null? (syntax-e e)))))
        (define new-executable-code
          (let loop ([mode '=]
                     [guide simplified-guide]
@@ -278,7 +340,8 @@
               body]
              ['()
               body])))
-       ;(show-stx #'body)
+       ;(displayln new-body)
+       ;(show-stx new-body)
        #`(begin
            #,(datum->syntax
               stx
