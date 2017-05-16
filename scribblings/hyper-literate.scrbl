@@ -5,7 +5,7 @@
                     (subtract-in scribble/manual hyper-literate)
                     racket/contract]]
 
-@title{hyper-literate}
+@title{Hyper-literate programming}
 @author{Georges Dupéron}
 
 @(require scribble/manual

@@ -19,7 +19,7 @@
                      "rackunit-doc"
                      "scribble-doc"
                      "rackunit-doc"))
-(define scribblings '(("scribblings/hyper-literate.scrbl" ())
+(define scribblings '(("scribblings/hyper-literate.scrbl" () ("Scribble Libraries"))
                       ("test/test.hl.rkt" () (omit-start))
                       ("test/test2.hl.rkt" () (omit-start))))
 (define pkg-desc
