@@ -41,8 +41,10 @@ options:
    flow-empty-line
    (list
     @racketgrammar*[
- [maybe-no-req #:no-require-lang]
- [maybe-no-auto #:no-auto-require]])))
+ (maybe-no-req (code:line)
+               (code:line #:no-require-lang))
+ (maybe-no-auto (code:line)
+                (code:line #:no-auto-require))])))
 
 where @racket[_lang] is a module name which can be used as
 a @litchar{#lang}, for example @racketmodname[typed/racket]
