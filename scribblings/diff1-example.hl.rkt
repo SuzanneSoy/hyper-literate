@@ -7,17 +7,6 @@
 
 Highly experimental. Contains bugs, API may change in the future.
 
-♦defproc[(init) any/c]{
-                       
- For now, the ♦racket[init] function must be called somewhere in documents
- which use ♦racketmodname[hyper-literate/diff1]. It produces helper values
- which must be inserted in the scribble document. Simply adding this to the
- document should be enough:
-
- ♦codeblock|{
- #lang hyper-literate #:♦ racket/base
- ♦(init)}|}
-
 ♦defform[(hlite name pat . body)]{
                                   
  Like ♦racket[chunk], but highlights parts of the ♦racket[body] according to
@@ -53,7 +42,6 @@ Highly experimental. Contains bugs, API may change in the future.
  It produces the result shown below:}
 
 ♦require[hyper-literate/diff1]
-♦(init)
 
 ♦hlite[<my-code> {/ (def args (_ - _ + _ / . _))}
        (define (foo v)
@@ -65,7 +53,6 @@ You can look at the source code of this document to see how this example is
 done.
 
 ♦require[hyper-literate/diff1]
-♦(init)
 
 We define the function foo as follows:
 

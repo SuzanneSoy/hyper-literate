@@ -1,7 +1,6 @@
 #lang at-exp racket/base
 
-(provide hlite
-         init)
+(provide hlite)
 
 (require hyper-literate
          (for-syntax syntax/parse
@@ -106,6 +105,9 @@
            [(and (identifier? g) (free-identifier=? g #'=)) '=]
            [(and (identifier? g) (free-identifier=? g #'-)) '-]
            [(and (identifier? g) (free-identifier=? g #'+)) '+]
+           [(and (identifier? g) (free-identifier=? g #'-/)) '-/]
+           [(and (identifier? g) (free-identifier=? g #'-=)) '-=]
+           [(and (identifier? g) (free-identifier=? g #'-+)) '-+]
            [(identifier? g) '_]
            [(syntax? g) (simplify-guide (syntax-e g))]
            [(pair? g) (cons (simplify-guide (car g))
@@ -116,7 +118,10 @@
            [(/) "HyperLiterateDim"]
            [(=) "HyperLiterateNormal"]
            [(-) "HyperLiterateRemove"]
-           [(+) "HyperLiterateAdd"]))
+           [(+) "HyperLiterateAdd"]
+           [(-/) "HyperLiterateDim"]
+           [(-=) "HyperLiterateNormal"]
+           [(-+) "HyperLiterateAdd"]))
        (define simplified-guide (simplify-guide #'guide1))
        (define (syntax-e? v)
          (if (syntax? v) (syntax-e v) v))
@@ -125,7 +130,7 @@
                     [guide simplified-guide]
                     [body #'body])
            (match guide
-             [(cons (and new-mode (or '/ '= '- '+)) rest-guide)
+             [(cons (and new-mode (or '/ '= '- '+ '-/ '-= '-+)) rest-guide)
               (loop new-mode rest-guide body)]
              [(list car-guide rest-guide)
               #:when (and (pair? (syntax-e? body))
@@ -168,7 +173,7 @@
                             [acc '()])
                   (cond
                     [(and (pair? guide)
-                          (memq (car guide) '(/ = - +)))
+                          (memq (car guide) '(/ = - + -/ -= -+)))
                      (if first-iteration?
                          (loop (car guide) (cdr guide) body)
                          ;; produce:
@@ -224,7 +229,7 @@
                        (raise-syntax-error
                         'hlite
                         ;; TODO: thread the syntax version of body, so that
-                        ;; we can highligh the error.
+                        ;; we can highlight the error.
                         "Expected non-null body, but found null"
                         stx))
                      ;; produce:
@@ -261,13 +266,21 @@
                              (build-source-location-list
                               (update-source-location body #:span 0)))]
              ['()
+              (unless (stx-null? body)
+                (raise-syntax-error
+                 'hlite
+                 ;; TODO: thread the syntax version of body, so that
+                 ;; we can highlight the error.
+                 (format "Expected null body, but found non-null ~a"
+                         (syntax->datum body))
+                 stx))
               body])))
        (define new-executable-code
          (let loop ([mode '=]
                     [guide simplified-guide]
                     [body #'body])
            (match guide
-             [(cons (and new-mode (or '/ '= '- '+)) rest-guide)
+             [(cons (and new-mode (or '/ '= '- '+ '-/ '-= '-+)) rest-guide)
               (loop new-mode rest-guide body)]
              [(cons car-guide rest-guide)
               (define (do-append-last-acc last-acc acc)
@@ -296,7 +309,7 @@
                             [last-acc '()])
                   (cond
                     [(and (pair? guide)
-                          (memq (car guide) '(/ = - +)))
+                          (memq (car guide) '(/ = - + -/ -= -+)))
                      (if (or first-iteration?
                              (eq? (car guide) mode))
                          (loop (car guide) (cdr guide) body)
@@ -313,7 +326,7 @@
                      ;; accumulate the first element of body, if mode is not '-
                      ;; which means that the element should be removed.
                      (cond
-                       [(and (eq? mode '-)
+                       [(and (memq mode '(- -/ -= -+))
                              (or (pair? (car body))
                                  (and (syntax? (car body))
                                       (pair? (syntax-e (car body))))))
@@ -323,7 +336,7 @@
                                  (cdr body)
                                  (do-append-last-acc last-acc acc)
                                  r))]
-                       [(eq? mode '-)
+                       [(memq mode '(- -/ -= -+))
                         (loop2 #f
                                (cdr guide)
                                (cdr body)
@@ -361,6 +374,7 @@
        ;(displayln new-body)
        ;(show-stx new-body)
        #`(begin
+           (init)
            #,(datum->syntax
               stx
               `(,(datum->syntax #'here 'chunk #'self)
