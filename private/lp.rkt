@@ -134,7 +134,8 @@
 (define-for-syntax ((make-chunk-display racketblock unsyntax-id) stx)
   (syntax-parse stx
     ;; no need for more error checking, using chunk for the code will do that
-    [(_ (original-before-expr ...)
+    [(_ {~optional {~seq #:button button}}
+        (original-before-expr ...)
         original-name:id
         name:id
         stxn:number
@@ -183,7 +184,8 @@
                                (bold (italic (elemref '(prefixable tag)
                                                       #:underline? #f
                                                       #,str-display rest ...))
-                                     " ::=")))
+                                     " ::="))
+                      #,@(if (attribute button) #'{button} #'{}))
                 (list (smaller
                        (make-link-element "plainlink"
                                           (decode-content
@@ -199,8 +201,10 @@
     ;; no need for more error checking, using chunk for the code will do that
     [(_ {~optional {~seq #:save-as save-as:id}}
         {~optional {~and #:display-only display-only}}
+        {~optional {~seq #:button button}}
         {~and name:id original-before-expr}
         expr ...)
+     #:with (btn ...) (if (attribute button) #'{#:button button} #'{})
      (define n (get-chunk-number (syntax-local-introduce #'name)))
      (define/with-syntax name:n (format-id #'name "~a:~a" #'name (or n 1)))
      
@@ -259,6 +263,7 @@
                                        (syntax-local-introduce
                                         (quote-syntax #,(strip-source #'(expr ...))))])
                           #`(stx-chunk-display
+                             btn ...
                              (original-before-expr)
                              local-name
                              newname
@@ -266,7 +271,8 @@
                              local-expr (... ...)))])))
                ;; The (list) here could be important, to avoid the code being
                ;; executed multiple times in weird ways, when pre-expanding.
-               #`(list (stx-chunk-display (original-before-expr)
+               #`(list (stx-chunk-display btn ...
+                                          (original-before-expr)
                                           name
                                           name
                                           stx-n
