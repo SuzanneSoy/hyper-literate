@@ -13,7 +13,8 @@
          scribble/decode
          scribble/html-properties
          hyper-literate
-         (for-syntax syntax/parse))
+         (for-syntax syntax/parse)
+         scriblib/render-cond)
 
 (define spoiler-css
   #"
@@ -115,18 +116,27 @@ EOJS
          (chunk #:save-as ck1
                 #:display-only
                 #:button
-                (list " " (smaller (spoiler-button-default-to-alt "expand")))
+                (cond-element
+                 [html (list " " (smaller
+                                  (spoiler-button-default-to-alt "expand")))]
+                 [else (list)])
                 name
                 default ...)
 
          (chunk #:save-as ck2
                 #:button
-                (list " " (smaller (spoiler-button-alt-to-default "collapse")))
+                (cond-element
+                 [html (list " " (smaller
+                                  (spoiler-button-alt-to-default "collapse")))]
+                 [else (list)])
                 name
                 expanded ...)
 
-         (nested-flow spoiler-wrapper-collapsed
-                      (list (nested-flow spoiler-default
-                                         (decode-flow (ck1)))
-                            (nested-flow spoiler-alt
-                                         (decode-flow (ck2))))))]))
+         (cond-block
+          [html (nested-flow spoiler-wrapper-collapsed
+                             (list (nested-flow spoiler-default
+                                                (decode-flow (ck1)))
+                                   (nested-flow spoiler-alt
+                                                (decode-flow (ck2)))))]
+          [else (nested-flow (style #f '())
+                             (decode-flow (ck2)))]))]))
