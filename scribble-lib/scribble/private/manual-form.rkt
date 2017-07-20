@@ -95,13 +95,14 @@
                          (if (and (identifier? spec)
                                   (free-identifier=? spec #'defined-id))
                              (datum->syntax #'here '(unsyntax x) spec spec)
-                             (syntax-case spec ()
-                               [(a . b)
-                                (datum->syntax spec
-                                               (cons (loop #'a) (loop #'b))
-                                               spec
-                                               spec)]
-                               [_ spec]))))])
+                             (cond
+                               [(syntax? spec) (datum->syntax spec
+                                                              (loop (syntax-e spec))
+                                                              spec
+                                                              spec)]
+                               [(pair? spec) (cons (loop (car spec))
+                                                   (loop (cdr spec)))]
+                               [else spec]))))])
        #'(with-togetherable-racket-variables
             (l.lit ...)
             ([form [defined-id spec]] [form [defined-id spec1]] ...
