@@ -1,5 +1,5 @@
 hyper-literate
-Copyright (c) 2016 Georges Dupéron
+Copyright (c) 2016 Suzanne Soy
 
 This package is distributed under the GNU Lesser General Public
 License (LGPL).  This means that you can link hyper-literate into proprietary

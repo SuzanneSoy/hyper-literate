@@ -6,7 +6,7 @@
                     racket/contract]]
 
 @title{Hyper-literate programming}
-@author{Georges Dupéron}
+@author{Suzanne Soy}
 
 @(require scribble/manual
           scribble/core

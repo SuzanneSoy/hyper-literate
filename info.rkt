@@ -28,4 +28,4 @@
                  " For now, this is based on scribble/lp2, and only contains"
                  " some ε-improvements over it"))
 (define version "0.2")
-(define pkg-authors '(|Georges Dupéron|))
+(define pkg-authors '(|Suzanne Soy|))
