@@ -6,7 +6,7 @@
                     racket/contract]]
 
 @title{Hyper-literate programming}
-@author{Suzanne Soy}
+@author[@author+email["Suzanne Soy" "racket@suzanne.soy"]]
 
 @(require scribble/manual
           scribble/core
