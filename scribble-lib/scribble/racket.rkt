@@ -677,9 +677,7 @@
                                    quote-depth)]
                   [p-color (if (positive? quote-depth) 
                                value-color
-                               (if (eq? sh #\?)
-                                   opt-color
-                                   paren-color))])
+                               paren-color)])
              (advance c init-line! srcless-step)
              (let ([quote-depth (if (struct-proxy? (syntax-e c))
                                     quote-depth
@@ -726,7 +724,7 @@
                    (set! src-col (+ src-col 2))))
                (unless (and expr? (zero? quote-depth))
                  (out (case sh
-                        [(#\[ #\?) "["]
+                        [(#\[) "["]
                         [(#\{) "{"]
                         [else "("])
                       p-color))
@@ -765,9 +763,9 @@
                                  (syntax-e c)]
                                 [(mpair? (syntax-e c))
                                  (syntax-e c)]
-                        [else c]))
+                                [else c]))
                (out (case sh
-                      [(#\[ #\?) "]"]
+                      [(#\[) "]"]
                       [(#\{) "}"]
                       [else ")"])
                     p-color)
@@ -805,7 +803,7 @@
                    [orig-col src-col])
                (set! src-col (+ src-col delta))
                (hash-set! next-col-map src-col dest-col)
-               ((loop init-line! (if expr? quote-depth +inf.0) expr? (and expr? (zero? quote-depth)))
+               ((loop init-line! quote-depth expr? (and expr? (zero? quote-depth)))
                 (let*-values ([(l) (sort (hash-map (syntax-e c) cons)
                                          (lambda (a b)
                                            (< (or (syntax-position (cdr a)) -inf.0)
